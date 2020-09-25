@@ -42,7 +42,7 @@ impl Parser<'_> {
                 }
             }
         }
-        return result;
+        result
     }
 }
 
