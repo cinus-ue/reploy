@@ -36,15 +36,15 @@ fn main() {
         ).get_matches();
 
     if let Some(_matches) = matches.subcommand_matches("run") {
-        let instant = Instant::now();
-        let recipe = std::fs::read_to_string(_matches.value_of("recipe").unwrap()).unwrap();
-        let lexer = Lexer::new(recipe.as_str());
+        let start = Instant::now();
+        let recipe = std::fs::read_to_string(_matches.value_of("recipe").unwrap()).expect("Could not read recipe file");
+        let lexer = Lexer::new(&recipe);
         let mut parser = Parser::new(lexer);
         let mut evaluator = Evaluator::new(parser.parse(), matches.is_present("verbose"));
         if matches.is_present("identity") {
             evaluator.set_identity(matches.value_of("identity").unwrap());
         }
         evaluator.run();
-        println!("deployment finished，duration {:?}", Instant::now().duration_since(instant));
+        println!("deployment finished，duration {:?}", Instant::now().duration_since(start));
     }
 }

@@ -1,6 +1,6 @@
 [package]
 name = "reploy"
-version = "0.1.0"
+version = "0.1.1"
 keywords = ["deploy", "ssh"]
 authors = ["Carey Wong <cw.cinus@gmail.com>"]
 
