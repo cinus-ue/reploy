@@ -28,6 +28,11 @@ impl Parser<'_> {
                 Type::SUDO => {
                     sudo = true;
                 }
+                Type::ASSERT => {
+                    arguments.push(self.lexer.next_token());
+                    arguments.push(self.lexer.next_token());
+                    result.push_back(Statement { token, sudo, arguments });
+                }
                 Type::SET | Type::UPLOAD | Type::DOWNLOAD => {
                     arguments.push(self.lexer.next_token());
                     arguments.push(self.lexer.next_token());

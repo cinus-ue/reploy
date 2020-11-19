@@ -11,6 +11,7 @@ use regex::Regex;
 use ssh2::{Channel, Session, Sftp};
 
 use internal::statement::Statement;
+use internal::status::Status;
 use internal::token::Type;
 use internal::util;
 
@@ -22,6 +23,7 @@ pub struct Evaluator {
     variables: HashMap<String, String>,
     is_verbose: bool,
     ssh_session: Session,
+    status: Status,
 }
 
 
@@ -34,6 +36,7 @@ impl Evaluator {
             variables: HashMap::new(),
             is_verbose: verbose,
             ssh_session: Session::new().unwrap(),
+            status: Status { exit_code: 0, stdout: String::new(), stderr: String::new() },
         }
     }
 
@@ -53,7 +56,29 @@ impl Evaluator {
                                 println!("run command: {}", cmd);
                             }
                             channel.exec(cmd.as_str()).expect("failed to run command");
-                            consume_stdio(&mut channel);
+                            self.status = consume_stdio(&mut channel);
+                        }
+                    }
+                    Type::ASSERT => {
+                        let t = &statement.arguments[0];
+                        let v = &statement.arguments[1];
+                        match t.literal.as_str() {
+                            "exit_code" => {
+                                if self.status.exit_code.to_string() != v.literal {
+                                    panic!("assertion failed:exit_code {}, expected {}", self.status.exit_code, v.literal)
+                                }
+                            }
+                            "stdout" => {
+                                if !(self.status.stdout.contains(v.literal.as_str())) {
+                                    panic!("assertion failed:stdout {}", self.status.stdout)
+                                }
+                            }
+                            "stderr" => {
+                                if !(self.status.stderr.contains(v.literal.as_str())) {
+                                    panic!("assertion failed:stderr {}", self.status.stderr)
+                                }
+                            }
+                            _ => {}
                         }
                     }
                     Type::SET => {
@@ -169,7 +194,7 @@ fn download_file(remote: &String, local: &String, sftp: &Sftp) {
 }
 
 
-fn consume_stdio(channel: &mut Channel) {
+fn consume_stdio(channel: &mut Channel) -> Status {
     let mut stdout = String::new();
     channel.read_to_string(&mut stdout).unwrap();
 
@@ -183,4 +208,9 @@ fn consume_stdio(channel: &mut Channel) {
     if !stderr.is_empty() {
         println!("stderr: {}", stderr.trim());
     }
+    return Status {
+        exit_code: channel.exit_status().unwrap(),
+        stdout,
+        stderr,
+    };
 }
