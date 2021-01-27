@@ -28,7 +28,7 @@ impl Parser<'_> {
                 Type::SUDO => {
                     sudo = true;
                 }
-                Type::ASSERT => {
+                Type::CHECK => {
                     arguments.push(self.lexer.next_token());
                     arguments.push(self.lexer.next_token());
                     result.push_back(Statement { token, sudo, arguments });

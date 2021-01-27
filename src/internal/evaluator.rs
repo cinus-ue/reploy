@@ -59,7 +59,7 @@ impl Evaluator {
                             self.status = consume_stdio(&mut channel);
                         }
                     }
-                    Type::ASSERT => {
+                    Type::CHECK => {
                         let t = &statement.arguments[0];
                         let v = &statement.arguments[1];
                         match t.literal.as_str() {
