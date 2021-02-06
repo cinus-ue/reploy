@@ -14,40 +14,27 @@ impl Parser<'_> {
     }
 
     pub fn parse(&mut self) -> LinkedList<Statement> {
-        let mut result: LinkedList<Statement> = LinkedList::new();
-        let mut sudo = false;
-        let mut run = true;
-        while run {
+        let mut statements: LinkedList<Statement> = LinkedList::new();
+        let mut is_end = false;
+        while !is_end {
             let token = self.lexer.next_token();
             let mut arguments: Vec<Token> = Vec::new();
             match token.token_type {
-                Type::RUN => {
+                Type::RUN | Type::ECHO | Type::TARGET => {
                     arguments.push(self.lexer.next_token());
-                    result.push_back(Statement { token, sudo, arguments });
+                    statements.push_back(Statement { token, arguments });
                 }
-                Type::SUDO => {
-                    sudo = true;
-                }
-                Type::CHECK => {
+                Type::SET | Type::CHECK | Type::UPLOAD | Type::DOWNLOAD => {
                     arguments.push(self.lexer.next_token());
                     arguments.push(self.lexer.next_token());
-                    result.push_back(Statement { token, sudo, arguments });
-                }
-                Type::SET | Type::UPLOAD | Type::DOWNLOAD => {
-                    arguments.push(self.lexer.next_token());
-                    arguments.push(self.lexer.next_token());
-                    result.push_back(Statement { token, sudo, arguments });
-                }
-                Type::TARGET => {
-                    arguments.push(self.lexer.next_token());
-                    result.push_back(Statement { token, sudo, arguments });
+                    statements.push_back(Statement { token, arguments });
                 }
                 _ => {
-                    run = !self.lexer.is_eof();
+                    is_end = self.lexer.is_eof();
                 }
             }
         }
-        result
+        statements
     }
 }
 

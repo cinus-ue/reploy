@@ -2,16 +2,16 @@ Target root@196.1.1.1:22
 
 Set DENO_VERSION "v1.4.0"
 
-#Install deno
+Echo "Step 1: Install deno"
 
 #Run "wget https://github.com/denoland/deno/releases/download/${DENO_VERSION}/deno-x86_64-unknown-linux-gnu.zip"
 #Run "unzip deno-x86_64-unknown-linux-gnu.zip"
 Run "./deno -V"
-Check "stdout" "deno 1.4.0"
+Check stdout "deno 1.4.0"
 
-#Run script
+Echo "Step 2: Upload and run script"
 
 Upload  D:\Code\rust\src\reploy\examples\hello-world.js /home/cinus/hello-world.js
 Run "./deno run /home/cinus/hello-world.js"
 
-Check "exit_code" "0"
+Check exit_code "0"

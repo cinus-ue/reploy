@@ -10,7 +10,7 @@ pub enum Type {
     STRING,
     RUN,
     SET,
-    SUDO,
+    ECHO,
     CHECK,
     TARGET,
     UPLOAD,
@@ -22,7 +22,7 @@ pub fn lookup_identifier(identifier: String) -> Type {
     return match identifier.trim() {
         "Run" => Type::RUN,
         "Set" => Type::SET,
-        "Sudo" => Type::SUDO,
+        "Echo" => Type::ECHO,
         "Check" => Type::CHECK,
         "Target" => Type::TARGET,
         "Upload" => Type::UPLOAD,
