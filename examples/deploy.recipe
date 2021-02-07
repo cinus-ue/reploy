@@ -1,11 +1,11 @@
-Target root@196.1.1.1:22
+Target root@105.239.136.127:22
 
 Set DENO_VERSION "v1.4.0"
 
 Task {
     Echo "Step 1: Install Deno"
-    #Run "wget https://github.com/denoland/deno/releases/download/${DENO_VERSION}/deno-x86_64-unknown-linux-gnu.zip"
-    #Run "unzip deno-x86_64-unknown-linux-gnu.zip"
+    # Run "wget https://github.com/denoland/deno/releases/download/${DENO_VERSION}/deno-x86_64-unknown-linux-gnu.zip"
+    # Run "unzip deno-x86_64-unknown-linux-gnu.zip"
     Run "./deno -V" When stdout == "deno 1.4.0" Goto A
     Run "./deno -V" When stdout != "deno 1.4.0" Goto B
     Echo "Task finished"
@@ -24,6 +24,6 @@ Label B {
 
 Label C {
     Echo "label C"
-    #Exit
+    # Exit
 }
 
