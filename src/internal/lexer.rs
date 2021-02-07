@@ -1,6 +1,6 @@
 use std::str::Chars;
 
-use internal::token::{lookup_identifier, Token, Type};
+use internal::{lookup_identifier, Token, Type};
 
 pub const EOF_CHAR: char = '\0';
 pub const CR: char = '\u{000D}';
@@ -19,15 +19,12 @@ impl<'a> Lexer<'a> {
         Lexer {
             initial_len: input.len(),
             read_len: 0,
-            char: EOF_CHAR,
+            char: input.chars().nth(0).unwrap(),
             chars: input.chars(),
         }
     }
 
     pub fn next_token(&mut self) -> Token {
-        if self.char == EOF_CHAR {
-            self.read_char();
-        }
         self.skip_whitespace();
         if self.char == '#' {
             self.skip_comment();
@@ -56,7 +53,7 @@ impl<'a> Lexer<'a> {
         };
     }
 
-    pub fn is_eof(&self) -> bool {
+    fn is_eof(&self) -> bool {
         self.read_len == self.initial_len
     }
 
@@ -65,7 +62,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn nth_char(&self, n: usize) -> char {
-        self.chars().nth(n - 1).unwrap_or(EOF_CHAR)
+        self.chars().nth(n).unwrap_or(EOF_CHAR)
     }
 
     fn read_string(&mut self) -> String {

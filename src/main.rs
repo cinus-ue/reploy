@@ -14,9 +14,9 @@ mod internal;
 
 fn main() {
     let matches = App::new("reploy")
-        .version("0.1.3")
+        .version("0.1.4")
         .arg(Arg::with_name("identity")
-                 .short("-i")
+                 .short("i")
                  .long("identity")
                  .value_name("KEY FILE")
                  .help("The identity file to use for key-based authentication").takes_value(true),

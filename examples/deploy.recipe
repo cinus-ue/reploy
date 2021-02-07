@@ -2,16 +2,28 @@ Target root@196.1.1.1:22
 
 Set DENO_VERSION "v1.4.0"
 
-Echo "Step 1: Install deno"
+Task {
+    Echo "Step 1: Install Deno"
+    #Run "wget https://github.com/denoland/deno/releases/download/${DENO_VERSION}/deno-x86_64-unknown-linux-gnu.zip"
+    #Run "unzip deno-x86_64-unknown-linux-gnu.zip"
+    Run "./deno -V" When stdout == "deno 1.4.0" Goto A
+    Run "./deno -V" When stdout != "deno 1.4.0" Goto B
+    Echo "Task finished"
+    Exit
+}
 
-#Run "wget https://github.com/denoland/deno/releases/download/${DENO_VERSION}/deno-x86_64-unknown-linux-gnu.zip"
-#Run "unzip deno-x86_64-unknown-linux-gnu.zip"
-Run "./deno -V"
-Check stdout "deno 1.4.0"
+Label A {
+    Echo "Step 2: Upload and run script"
+    Upload  D:\Code\rust\src\reploy\examples\hello-world.js /home/cinus/hello-world.js
+    Run "./deno run /home/cinus/hello-world.js" When exit_code == "0" Goto C
+}
 
-Echo "Step 2: Upload and run script"
+Label B {
+    Echo "label B"
+}
 
-Upload  D:\Code\rust\src\reploy\examples\hello-world.js /home/cinus/hello-world.js
-Run "./deno run /home/cinus/hello-world.js"
+Label C {
+    Echo "label C"
+    #Exit
+}
 
-Check exit_code "0"

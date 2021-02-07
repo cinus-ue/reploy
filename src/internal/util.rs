@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use ssh2::{Channel, Sftp};
 
-use internal::status::Status;
+use internal::Stdio;
 
 const BUF_SIZE: usize = 1024 * 1024;
 
@@ -43,21 +43,14 @@ pub fn download_file(remote: &String, local: &String, sftp: &Sftp) {
 }
 
 
-pub fn consume_stdio(channel: &mut Channel) -> Status {
+pub fn consume_stdio(channel: &mut Channel) -> Stdio {
     let mut stdout = String::new();
     channel.read_to_string(&mut stdout).unwrap();
 
     let mut stderr = String::new();
     channel.stderr().read_to_string(&mut stderr).unwrap();
 
-    if !stdout.is_empty() {
-        println!("stdout: {}", stdout.trim());
-    }
-
-    if !stderr.is_empty() {
-        println!("stderr: {}", stderr.trim());
-    }
-    return Status {
+    return Stdio {
         exit_code: channel.exit_status().unwrap(),
         stdout,
         stderr,
