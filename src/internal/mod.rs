@@ -35,10 +35,12 @@ pub struct Token {
 #[derive(Clone, Debug)]
 pub enum Type {
     EOF,
-    RUN,
     SET,
-    ECHO,
-    EXIT,
+    RUN,
+    SND,
+    RCV,
+    SAY,
+    END,
     WHEN,
     GOTO,
     TASK,
@@ -47,8 +49,6 @@ pub enum Type {
     RBRACE,
     STRING,
     TARGET,
-    UPLOAD,
-    DOWNLOAD,
     UNKNOWN,
 }
 
@@ -56,17 +56,17 @@ pub fn lookup_identifier(identifier: String) -> Type {
     return match identifier.trim() {
         "{" => Type::LBRACE,
         "}" => Type::RBRACE,
-        "Run" => Type::RUN,
         "Set" => Type::SET,
-        "Echo" => Type::ECHO,
-        "Exit" => Type::EXIT,
+        "Run" => Type::RUN,
+        "Snd" => Type::SND,
+        "Rcv" => Type::RCV,
+        "Say" => Type::SAY,
+        "End" => Type::END,
         "When" => Type::WHEN,
         "Goto" => Type::GOTO,
         "Task" => Type::TASK,
         "Label" => Type::LABEL,
         "Target" => Type::TARGET,
-        "Upload" => Type::UPLOAD,
-        "Download" => Type::DOWNLOAD,
         _ => Type::UNKNOWN,
     };
 }

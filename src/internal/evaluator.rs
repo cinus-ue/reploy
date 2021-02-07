@@ -11,7 +11,7 @@ use internal::util;
 
 pub struct Evaluator {
     recipe: Recipe,
-    is_stop: bool,
+    is_end: bool,
     is_verbose: bool,
     identity: PathBuf,
     ssh_session: Session,
@@ -23,7 +23,7 @@ impl Evaluator {
     pub fn new(recipe: Recipe, verbose: bool) -> Evaluator {
         Evaluator {
             recipe,
-            is_stop: false,
+            is_end: false,
             is_verbose: verbose,
             identity: util::home_dir().map(|d| d.join(".ssh").join("id_rsa")).unwrap_or(PathBuf::new()),
             ssh_session: Session::new().unwrap(),
@@ -42,7 +42,7 @@ impl Evaluator {
 
     fn resolve_statement(&mut self, statements: Vec<Statement>) {
         for statement in statements {
-            if self.is_stop {
+            if self.is_end {
                 break;
             }
             match statement.token.token_type {
@@ -52,20 +52,20 @@ impl Evaluator {
                 Type::RUN => {
                     self.resolve_run(statement)
                 }
-                Type::ECHO => {
-                    self.resolve_echo(statement)
+                Type::SAY => {
+                    self.resolve_say(statement)
                 }
                 Type::WHEN => {
                     self.resolve_when(statement)
                 }
-                Type::UPLOAD => {
-                    self.resolve_upload(statement)
+                Type::SND => {
+                    self.resolve_snd(statement)
                 }
-                Type::DOWNLOAD => {
-                    self.resolve_download(statement)
+                Type::RCV => {
+                    self.resolve_rcv(statement)
                 }
-                Type::EXIT => {
-                    self.is_stop = true;
+                Type::END => {
+                    self.is_end = true;
                 }
                 _ => eprintln!("unhandled statement: {:?}", statement)
             }
@@ -81,28 +81,28 @@ impl Evaluator {
         channel.exec(cmd.as_str()).expect("failed to run command");
         self.stdio = util::consume_stdio(&mut channel);
         if self.is_verbose {
-            println!("stdio: {:?}", self.stdio);
+            println!("{:?}", self.stdio);
         }
     }
 
-    fn resolve_upload(&self, statement: Statement) {
-        let s = &statement.arguments[0];
-        let d = &statement.arguments[1];
+    fn resolve_snd(&self, statement: Statement) {
+        let s = self.replace_variable(statement.arguments[0].literal.clone());
+        let d = self.replace_variable(statement.arguments[1].literal.clone());
         if self.is_verbose {
-            println!("upload file:{}", s.literal);
+            println!("upload file:{}", s);
         }
         let sftp = self.ssh_session.sftp().expect("SFTP error");
-        util::upload_file(&s.literal, &d.literal, &sftp);
+        util::upload_file(&s, &d, &sftp);
     }
 
-    fn resolve_download(&self, statement: Statement) {
-        let s = &statement.arguments[0];
-        let d = &statement.arguments[1];
+    fn resolve_rcv(&self, statement: Statement) {
+        let s = self.replace_variable(statement.arguments[0].literal.clone());
+        let d = self.replace_variable(statement.arguments[1].literal.clone());
         if self.is_verbose {
-            println!("download file:{}", s.literal);
+            println!("download file:{}", s);
         }
         let sftp = self.ssh_session.sftp().expect("SFTP error");
-        util::download_file(&s.literal, &d.literal, &sftp);
+        util::download_file(&s, &d, &sftp);
     }
 
     fn resolve_when(&mut self, statement: Statement) {
@@ -139,20 +139,20 @@ impl Evaluator {
         }
     }
 
-    fn resolve_echo(&self, statement: Statement) {
+    fn resolve_say(&self, statement: Statement) {
         let v = &statement.arguments[0];
         println!("Reploy > {}", v.literal)
     }
 
-    fn replace_variable(&self, mut cmd: String) -> String {
-        for cap in Regex::new(r"\$\{(.*?)}").unwrap().captures_iter(&cmd.clone()) {
+    fn replace_variable(&self, mut arg: String) -> String {
+        for cap in Regex::new(r"\$\{(.*?)}").unwrap().captures_iter(&arg.clone()) {
             let var = cap.get(0).unwrap().as_str();
             let key = var.trim_start_matches("${").trim_end_matches("}");
             if self.recipe.variables.contains_key(key) {
-                cmd = cmd.replace(var, self.recipe.variables.get(key).unwrap().as_str());
+                arg = arg.replace(var, self.recipe.variables.get(key).unwrap().as_str());
             }
         }
-        cmd
+        arg
     }
 
     fn resolve_target(&mut self, statement: Statement) {

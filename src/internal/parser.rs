@@ -55,14 +55,14 @@ impl Parser<'_> {
             let token = self.lexer.next_token();
             let mut arguments: Vec<Token> = Vec::new();
             match token.token_type {
-                Type::EXIT => {
+                Type::END => {
                     statements.push(Statement { token, arguments });
                 }
-                Type::RUN | Type::ECHO => {
+                Type::RUN | Type::SAY => {
                     arguments.push(self.lexer.next_token());
                     statements.push(Statement { token, arguments });
                 }
-                Type::UPLOAD | Type::DOWNLOAD => {
+                Type::SND | Type::RCV => {
                     arguments.push(self.lexer.next_token());
                     arguments.push(self.lexer.next_token());
                     statements.push(Statement { token, arguments });

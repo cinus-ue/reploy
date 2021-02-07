@@ -1,29 +1,31 @@
 Target root@105.239.136.127:22
 
 Set DENO_VERSION "v1.4.0"
+Set SCRIPT_FILE "/home/cinus/hello-world.js"
 
 Task {
-    Echo "Step 1: Install Deno"
+    Say "Step 1: Install Deno"
     # Run "wget https://github.com/denoland/deno/releases/download/${DENO_VERSION}/deno-x86_64-unknown-linux-gnu.zip"
     # Run "unzip deno-x86_64-unknown-linux-gnu.zip"
     Run "./deno -V" When stdout == "deno 1.4.0" Goto A
     Run "./deno -V" When stdout != "deno 1.4.0" Goto B
-    Echo "Task finished"
+    Say "Task finished"
 }
 
 Label A {
-    Echo "Step 2: Upload and run script"
-    Upload  D:\Code\rust\src\reploy\examples\hello-world.js /home/cinus/hello-world.js
-    Run "./deno run /home/cinus/hello-world.js" When exit_code == "0" Goto C
-    Exit
+    Say "Step 2: Upload and run script"
+    Snd "D:/Code/rust/src/reploy/examples/hello-world.js" "${SCRIPT_FILE}"
+    Run "./deno run ${SCRIPT_FILE}" When exit_code == "0" Goto C
+    End
 }
 
 Label B {
-    Echo "label B"
+    Say "label B"
 }
 
 Label C {
-    Echo "label C"
-    # Exit
+    Say "label C"
+    Run "rm -f ${SCRIPT_FILE}"
+    # End
 }
 
