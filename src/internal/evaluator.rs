@@ -185,7 +185,7 @@ impl Evaluator {
                 .userauth_pubkey_file(user, None, self.identity.as_path(), None)
                 .expect("authentication failed");
         } else {
-            panic!("File does not exist: {:?}", self.identity)
+            panic!("file does not exist: {:?}", self.identity)
         }
         assert!(self.ssh_session.authenticated());
     }

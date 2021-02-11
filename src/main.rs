@@ -28,16 +28,16 @@ fn main() {
                 .help("Enable verbose output"),
         )
         .subcommand(SubCommand::with_name("run")
-            .about("Run the specified recipe(s)")
+            .about("Run the specified recipe")
             .arg(Arg::with_name("recipe")
                 .required(true)
-                .help("Load and execute the recipe in the specified file(s)")
+                .help("Load and execute the recipe in the specified file")
             )
         ).get_matches();
 
-    if let Some(_matches) = matches.subcommand_matches("run") {
+    if let Some(arg_matches) = matches.subcommand_matches("run") {
         let start = Instant::now();
-        let recipe = std::fs::read_to_string(_matches.value_of("recipe").unwrap()).expect("Could not read recipe file");
+        let recipe = std::fs::read_to_string(arg_matches.value_of("recipe").unwrap()).expect("Could not read recipe file");
         let lexer = Lexer::new(&recipe);
         let mut parser = Parser::new(lexer);
         let mut evaluator = Evaluator::new(parser.parse(), matches.is_present("verbose"));

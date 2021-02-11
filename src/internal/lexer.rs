@@ -75,7 +75,7 @@ impl<'a> Lexer<'a> {
             }
             if self.char == EOF_CHAR {
                 // unterminated string
-                return String::from("");
+                break;
             }
             if self.char == '\\' {
                 if self.peek_char() == LF {

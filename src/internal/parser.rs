@@ -18,8 +18,7 @@ impl Parser<'_> {
             variables: HashMap::new(),
             labels: HashMap::new(),
         };
-        let mut eof = false;
-        while !eof {
+        loop {
             let token = self.lexer.next_token();
             match token.token_type {
                 Type::TARGET => {
@@ -40,7 +39,7 @@ impl Parser<'_> {
                     recipe.labels.insert(label.literal, self.parse_statement());
                 }
                 Type::EOF => {
-                    eof = true
+                    break;
                 }
                 _ => {}
             }
@@ -50,8 +49,7 @@ impl Parser<'_> {
 
     fn parse_statement(&mut self) -> Vec<Statement> {
         let mut statements: Vec<Statement> = Vec::new();
-        let mut is_end = false;
-        while !is_end {
+        loop {
             let token = self.lexer.next_token();
             let mut arguments: Vec<Token> = Vec::new();
             match token.token_type {
@@ -76,7 +74,7 @@ impl Parser<'_> {
                     statements.push(Statement { token, arguments });
                 }
                 Type::RBRACE => {
-                    is_end = true
+                    break;
                 }
                 _ => {}
             }
