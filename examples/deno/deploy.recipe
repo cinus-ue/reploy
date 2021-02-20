@@ -14,7 +14,7 @@ Task {
 
 Label A {
     Say "Step 2: Upload and run script"
-    Snd "D:/Code/rust/src/reploy/examples/hello-world.js" "${SCRIPT_FILE}"
+    Snd "./hello-world.js" "${SCRIPT_FILE}"
     Run "./deno run ${SCRIPT_FILE}" When exit_code == "0" Goto C
     End
 }

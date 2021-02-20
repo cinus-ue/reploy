@@ -6,4 +6,4 @@ function hello(name) {
   return "Hello " + capitalize(name);
 }
 
-console.log(hello("cinus"));
+console.log(hello("world"));
