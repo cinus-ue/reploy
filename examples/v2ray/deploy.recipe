@@ -9,23 +9,23 @@ Task {
 
     Say "Step 1: Downloading V2Ray"
 
-        Run "wget -P ${INSTALL_PATH} \
+    Run "wget -P ${INSTALL_PATH} \
         https://github.com/v2ray/v2ray-core/releases/download/${V2RAY_VERSION}/v2ray-linux-64.zip"
-        When exit_code != "0" Goto DOWNLOAD_FAILED
+    When exit_code != "0" Goto DOWNLOAD_FAILED
 
     Say "Step 2: File decompression"
 
-        Run "unzip ${INSTALL_PATH}/v2ray-linux-64.zip -d ${INSTALL_PATH}"
-        When exit_code != "0" Goto DECOMPRESSION_FAILED
-        Run "rm -f ${INSTALL_PATH}/config.json"
-        Snd "./config.json"  "${INSTALL_PATH}/config.json"
-        Run "mkdir ${INSTALL_PATH}/log"
+    Run "unzip ${INSTALL_PATH}/v2ray-linux-64.zip -d ${INSTALL_PATH}"
+    When exit_code != "0" Goto DECOMPRESSION_FAILED
+    Run "rm -f ${INSTALL_PATH}/config.json"
+    Snd "./config.json"  "${INSTALL_PATH}/config.json"
+    Run "mkdir ${INSTALL_PATH}/log"
 
     Say "Step 3: Starting V2Ray"
 
-        Snd "./start.sh" "${INSTALL_PATH}/start.sh"
-        Run "chmod +x ${INSTALL_PATH}/start.sh"
-        Run "sh ${INSTALL_PATH}/start.sh" When exit_code != "0" Goto START_FAILED
+    Snd "./start.sh" "${INSTALL_PATH}/start.sh"
+    Run "chmod +x ${INSTALL_PATH}/start.sh"
+    Run "sh ${INSTALL_PATH}/start.sh" When exit_code != "0" Goto START_FAILED
 
     Say "Finished: SUCCESS"
 }
