@@ -6,7 +6,7 @@ use ssh2::Session;
 
 use internal::{Recipe, Statement};
 use internal::Stdio;
-use internal::Type;
+use internal::token::Type;
 use internal::util;
 
 pub struct Evaluator {
@@ -25,7 +25,8 @@ impl Evaluator {
             recipe,
             is_end: false,
             is_verbose: verbose,
-            identity: util::home_dir().map(|d| d.join(".ssh").join("id_rsa")).unwrap_or(PathBuf::new()),
+            identity: util::home_dir().map(|d| d.join(".ssh")
+                .join("id_rsa")).unwrap_or(PathBuf::new()),
             ssh_session: Session::new().unwrap(),
             stdio: Stdio { exit_code: 0, stdout: String::new(), stderr: String::new() },
         }
@@ -49,11 +50,11 @@ impl Evaluator {
                 Type::TARGET => {
                     self.resolve_target(statement)
                 }
+                Type::COMMENT => {
+                    self.resolve_comment(statement)
+                }
                 Type::RUN => {
                     self.resolve_run(statement)
-                }
-                Type::SAY => {
-                    self.resolve_say(statement)
                 }
                 Type::WHEN => {
                     self.resolve_when(statement)
@@ -139,9 +140,8 @@ impl Evaluator {
         }
     }
 
-    fn resolve_say(&self, statement: Statement) {
-        let v = &statement.arguments[0];
-        println!("Reploy > {}", v.literal)
+    fn resolve_comment(&self, statement: Statement) {
+        println!("Reploy > {}", self.replace_variable(statement.arguments[0].literal.clone()))
     }
 
     fn replace_variable(&self, mut arg: String) -> String {

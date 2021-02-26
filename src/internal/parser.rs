@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
-use internal::{Recipe, Statement, Token, Type};
+use internal::{Recipe, Statement};
 use internal::lexer::Lexer;
+use internal::token::{Token, Type};
 
 pub struct Parser<'a> {
     lexer: Lexer<'a>,
@@ -56,7 +57,7 @@ impl Parser<'_> {
                 Type::END => {
                     statements.push(Statement { token, arguments });
                 }
-                Type::RUN | Type::SAY => {
+                Type::RUN | Type::COMMENT => {
                     arguments.push(self.lexer.next_token());
                     statements.push(Statement { token, arguments });
                 }

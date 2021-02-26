@@ -7,27 +7,29 @@ Task {
     Run "ls ${INSTALL_PATH}/v2ray" When stderr != "No such file or directory" Goto CLEAN
     Run "mkdir ${INSTALL_PATH}"
 
-    Say "Step 1: Downloading V2Ray"
+    Comment "Step 1: Downloading V2Ray"
 
     Run "wget -P ${INSTALL_PATH} \
         https://github.com/v2ray/v2ray-core/releases/download/${V2RAY_VERSION}/v2ray-linux-64.zip"
     When exit_code != "0" Goto DOWNLOAD_FAILED
 
-    Say "Step 2: File decompression"
+    Comment "Step 2: File decompression"
 
-    Run "unzip ${INSTALL_PATH}/v2ray-linux-64.zip -d ${INSTALL_PATH}"
+    Run "unzip ${INSTALL_PATH}/v2ray-linux-64.zip \
+        -d ${INSTALL_PATH}"
     When exit_code != "0" Goto DECOMPRESSION_FAILED
+
     Run "rm -f ${INSTALL_PATH}/config.json"
     Snd "./config.json"  "${INSTALL_PATH}/config.json"
     Run "mkdir ${INSTALL_PATH}/log"
 
-    Say "Step 3: Starting V2Ray"
+    Comment  "Step 3: Starting V2Ray"
 
     Snd "./start.sh" "${INSTALL_PATH}/start.sh"
     Run "chmod +x ${INSTALL_PATH}/start.sh"
     Run "sh ${INSTALL_PATH}/start.sh" When exit_code != "0" Goto START_FAILED
 
-    Say "Finished: SUCCESS"
+    Comment "Finished: SUCCESS"
 }
 
 Label CLEAN {
@@ -35,17 +37,17 @@ Label CLEAN {
 }
 
 Label DOWNLOAD_FAILED {
-    Say "Download failed! Please check your network or try again."
+    Comment "Download failed! Please check your network or try again."
     End
 }
 
 Label DECOMPRESSION_FAILED {
-    Say "V2Ray decompression failed."
+    Comment "V2Ray decompression failed."
     End
 }
 
 Label START_FAILED {
-    Say "Failed to start V2Ray service."
+    Comment "Failed to start V2Ray service."
     End
 }
 

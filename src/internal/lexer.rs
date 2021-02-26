@@ -1,6 +1,6 @@
 use std::str::Chars;
 
-use internal::{lookup_identifier, Token, Type};
+use internal::token::{lookup_identifier, Token, Type};
 
 pub const EOF_CHAR: char = '\0';
 pub const CR: char = '\u{000D}';
