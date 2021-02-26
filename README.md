@@ -1,6 +1,6 @@
 # Reploy
 
-Reploy is a remote server automation and deployment tool. It can be easily used to rolling update your sites. 
+Reploy is a remote server automation and deployment tool. It can be easily used to deploy applications.
 
 # Usage
 
