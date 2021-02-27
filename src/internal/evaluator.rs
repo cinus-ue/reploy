@@ -145,9 +145,9 @@ impl Evaluator {
     }
 
     fn replace_variable(&self, mut arg: String) -> String {
-        for cap in Regex::new(r"\$\{(.*?)}").unwrap().captures_iter(&arg.clone()) {
+        for cap in Regex::new(r"\{\{(.*?)}}").unwrap().captures_iter(&arg.clone()) {
             let var = cap.get(0).unwrap().as_str();
-            let key = var.trim_start_matches("${").trim_end_matches("}");
+            let key = var.trim_start_matches("{{").trim_end_matches("}}");
             if self.recipe.variables.contains_key(key) {
                 arg = arg.replace(var, self.recipe.variables.get(key).unwrap().as_str());
             }

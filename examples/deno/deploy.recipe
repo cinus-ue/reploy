@@ -5,7 +5,7 @@ Set SCRIPT_FILE "/home/cinus/hello-world.js"
 
 Task {
     Comment "Step 1: Install Deno"
-    # Run "wget https://github.com/denoland/deno/releases/download/${DENO_VERSION}/deno-x86_64-unknown-linux-gnu.zip"
+    # Run "wget https://github.com/denoland/deno/releases/download/{{DENO_VERSION}}/deno-x86_64-unknown-linux-gnu.zip"
     # Run "unzip deno-x86_64-unknown-linux-gnu.zip"
     Run "./deno -V" When stdout == "deno 1.4.0" Goto A
     Run "./deno -V" When stdout != "deno 1.4.0" Goto B
@@ -13,9 +13,9 @@ Task {
 }
 
 Label A {
-    Comment "Step 2: Upload and run script (${SCRIPT_FILE})"
-    Snd "./hello-world.js" "${SCRIPT_FILE}"
-    Run "./deno run ${SCRIPT_FILE}" When exit_code == "0" Goto C
+    Comment "Step 2: Upload and run script ({{SCRIPT_FILE}})"
+    Snd "hello-world.js" "{{SCRIPT_FILE}}"
+    Run "./deno run {{SCRIPT_FILE}}" When exit_code == "0" Goto C
     End
 }
 
@@ -25,7 +25,7 @@ Label B {
 
 Label C {
     Comment "label C"
-    Run "rm -f ${SCRIPT_FILE}"
+    Run "rm -f {{SCRIPT_FILE}}"
     # End
 }
 
