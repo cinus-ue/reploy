@@ -54,7 +54,7 @@ impl Parser<'_> {
             let token = self.lexer.next_token();
             let mut arguments: Vec<Token> = Vec::new();
             match token.token_type {
-                Type::RUN | Type::PRINT => {
+                Type::RUN | Type::PRINT | Type::CALL => {
                     arguments.push(self.lexer.next_token());
                 }
                 Type::SND | Type::RCV => {

@@ -72,6 +72,9 @@ impl Evaluator {
                 Type::RCV => {
                     self.resolve_rcv(statement)
                 }
+                Type::CALL => {
+                    self.resolve_call(statement)
+                }
                 Type::END => {
                     self.is_end = true;
                 }
@@ -154,6 +157,10 @@ impl Evaluator {
         if run_label {
             self.resolve_statement(self.recipe.labels.get(statement.arguments[4].literal.as_str()).unwrap().to_vec())
         }
+    }
+
+    fn resolve_call(&mut self, statement: Statement) {
+        self.resolve_statement(self.recipe.labels.get(statement.arguments[0].literal.as_str()).unwrap().to_vec())
     }
 
     fn resolve_print(&self, statement: Statement) {

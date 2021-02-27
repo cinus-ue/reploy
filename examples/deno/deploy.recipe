@@ -1,7 +1,7 @@
 Target root@105.239.136.127:22
 
 #
-# Set the release version as a variable named "DENO_VERSION".
+# Set the release version.
 #
 Set DENO_VERSION "v1.4.0"
 

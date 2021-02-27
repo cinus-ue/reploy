@@ -7,7 +7,7 @@ Task {
     #
     # Remove installed V2Ray.
     #
-    Run "sh -c \"[ -d {{PATH}} ] && echo yes \"" When stdout == "yes" Goto CLEAN
+    Call CLEAN_FILES
 
     #
     # Create the installation directory: {{PATH}}.
@@ -52,14 +52,23 @@ Task {
         -c {{PATH}}/config.json >/dev/null 2>&1 &\""
     When exit_code != "0" Goto START_FAILED
 
+    Call GET_PID
+    Run "kill -9 {{PID}}"
+    Call GET_PID
     Print "Finished: SUCCESS"
 }
 
-Label CLEAN {
+Label CLEAN_FILES {
     #
     # Remove installed files.
     #
     Run "rm -rf {{PATH}}"
+}
+
+Label GET_PID {
+     Run "ps -ef | grep v2ray | grep -v grep | awk '{print $2}'"
+     Let PID = stdout
+     Print "V2Ray Process ID: {{PID}}"
 }
 
 Label DOWNLOAD_FAILED {
