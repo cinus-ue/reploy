@@ -8,7 +8,6 @@ pub mod lexer;
 mod util;
 mod token;
 
-
 #[derive(Debug)]
 pub struct Recipe {
     pub statements: Vec<Statement>,

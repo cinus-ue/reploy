@@ -14,6 +14,9 @@ pub fn home_dir() -> Option<PathBuf> {
     dirs::home_dir()
 }
 
+pub fn ssh_key() -> PathBuf {
+    home_dir().map(|d| d.join(".ssh").join("id_rsa")).unwrap_or(PathBuf::new())
+}
 
 pub fn upload_file(local: &String, remote: &String, sftp: &Sftp) {
     let local_path = Path::new(local);

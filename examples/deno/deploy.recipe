@@ -16,7 +16,7 @@ Task {
     #
     # Run "wget https://github.com/denoland/deno/releases/download/{{DENO_VERSION}}/deno-x86_64-unknown-linux-gnu.zip"
 
-    Comment "Step 1: Install Deno"
+    Print "Step 1: Install Deno"
     #
     # Manually add the directory to your \$HOME/.bash_profile
     # export DENO_INSTALL=\"$deno_install\"
@@ -29,11 +29,11 @@ Task {
     #
     Run "./deno -V" When stdout == "deno 1.4.0" Goto A
     Run "./deno -V" When stdout != "deno 1.4.0" Goto B
-    Comment "Task finished"
+    Print "Task finished"
 }
 
 Label A {
-    Comment "Step 2: Upload and run script ({{SCRIPT_FILE}})"
+    Print "Step 2: Upload and run script ({{SCRIPT_FILE}})"
     #
     # File Upload.
     #
@@ -47,11 +47,13 @@ Label A {
 }
 
 Label B {
-    Comment "label B"
+    Print "label B"
 }
 
 Label C {
-    Comment "label C"
+    Print "label C"
+    Let RESULT = stdout
+    Print "Command output: {{RESULT}}"
     Run "rm -f {{SCRIPT_FILE}}"
     # End
 }

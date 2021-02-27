@@ -8,6 +8,7 @@ pub struct Token {
 pub enum Type {
     EOF,
     SET,
+    LET,
     RUN,
     SND,
     RCV,
@@ -16,11 +17,11 @@ pub enum Type {
     GOTO,
     TASK,
     LABEL,
+    PRINT,
     LBRACE,
     RBRACE,
     STRING,
     TARGET,
-    COMMENT,
     UNKNOWN,
 }
 
@@ -29,6 +30,7 @@ pub fn lookup_identifier(identifier: String) -> Type {
         "{" => Type::LBRACE,
         "}" => Type::RBRACE,
         "Set" => Type::SET,
+        "Let" => Type::LET,
         "Run" => Type::RUN,
         "Snd" => Type::SND,
         "Rcv" => Type::RCV,
@@ -37,7 +39,7 @@ pub fn lookup_identifier(identifier: String) -> Type {
         "Goto" => Type::GOTO,
         "Task" => Type::TASK,
         "Label" => Type::LABEL,
-        "Comment" => Type::COMMENT,
+        "Print" => Type::PRINT,
         "Target" => Type::TARGET,
         _ => Type::UNKNOWN,
     };

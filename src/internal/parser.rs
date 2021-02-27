@@ -54,17 +54,17 @@ impl Parser<'_> {
             let token = self.lexer.next_token();
             let mut arguments: Vec<Token> = Vec::new();
             match token.token_type {
-                Type::END => {
-                    statements.push(Statement { token, arguments });
-                }
-                Type::RUN | Type::COMMENT => {
+                Type::RUN | Type::PRINT => {
                     arguments.push(self.lexer.next_token());
-                    statements.push(Statement { token, arguments });
                 }
                 Type::SND | Type::RCV => {
                     arguments.push(self.lexer.next_token());
                     arguments.push(self.lexer.next_token());
-                    statements.push(Statement { token, arguments });
+                }
+                Type::LET => {
+                    arguments.push(self.lexer.next_token());
+                    arguments.push(self.lexer.next_token());
+                    arguments.push(self.lexer.next_token());
                 }
                 Type::WHEN => {
                     arguments.push(self.lexer.next_token());
@@ -72,13 +72,16 @@ impl Parser<'_> {
                     arguments.push(self.lexer.next_token());
                     arguments.push(self.lexer.next_token());
                     arguments.push(self.lexer.next_token());
-                    statements.push(Statement { token, arguments });
+                }
+                Type::LBRACE => {
+                    continue;
                 }
                 Type::RBRACE => {
                     break;
                 }
                 _ => {}
             }
+            statements.push(Statement { token, arguments });
         }
         statements
     }

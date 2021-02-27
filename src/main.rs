@@ -14,7 +14,7 @@ mod internal;
 
 fn main() {
     let matches = App::new("reploy")
-        .version("0.1.4")
+        .version("0.1.5")
         .arg(Arg::with_name("identity")
                  .short("i")
                  .long("identity")

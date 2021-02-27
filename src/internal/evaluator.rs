@@ -9,6 +9,12 @@ use internal::Stdio;
 use internal::token::Type;
 use internal::util;
 
+const EQEQ: &str = "==";
+const BANGEQ: &str = "!=";
+const STDOUT: &str = "stdout";
+const STDERR: &str = "stderr";
+const EXIT_CODE: &str = "exit_code";
+
 pub struct Evaluator {
     recipe: Recipe,
     is_end: bool,
@@ -18,15 +24,13 @@ pub struct Evaluator {
     stdio: Stdio,
 }
 
-
 impl Evaluator {
     pub fn new(recipe: Recipe, verbose: bool) -> Evaluator {
         Evaluator {
             recipe,
             is_end: false,
             is_verbose: verbose,
-            identity: util::home_dir().map(|d| d.join(".ssh")
-                .join("id_rsa")).unwrap_or(PathBuf::new()),
+            identity: util::ssh_key(),
             ssh_session: Session::new().unwrap(),
             stdio: Stdio { exit_code: 0, stdout: String::new(), stderr: String::new() },
         }
@@ -50,11 +54,14 @@ impl Evaluator {
                 Type::TARGET => {
                     self.resolve_target(statement)
                 }
-                Type::COMMENT => {
-                    self.resolve_comment(statement)
+                Type::PRINT => {
+                    self.resolve_print(statement)
                 }
                 Type::RUN => {
                     self.resolve_run(statement)
+                }
+                Type::LET => {
+                    self.resolve_let(statement)
                 }
                 Type::WHEN => {
                     self.resolve_when(statement)
@@ -81,8 +88,17 @@ impl Evaluator {
         }
         channel.exec(cmd.as_str()).expect("failed to run command");
         self.stdio = util::consume_stdio(&mut channel);
-        if self.is_verbose {
-            println!("{:?}", self.stdio);
+    }
+
+    fn resolve_let(&mut self, statement: Statement) {
+        match statement.arguments[2].literal.as_str() {
+            STDOUT => {
+                self.recipe.variables.insert(statement.arguments[0].literal.clone(), self.stdio.stdout.clone());
+            }
+            STDERR => {
+                self.recipe.variables.insert(statement.arguments[0].literal.clone(), self.stdio.stderr.clone());
+            }
+            _ => {}
         }
     }
 
@@ -112,24 +128,24 @@ impl Evaluator {
         let v2 = &statement.arguments[2];
         let mut run_label = false;
         match v1.literal.as_str() {
-            "exit_code" => {
+            EXIT_CODE => {
                 match op.literal.as_str() {
-                    "==" => { run_label = self.stdio.exit_code.to_string() == v2.literal }
-                    "!=" => { run_label = self.stdio.exit_code.to_string() != v2.literal }
+                    EQEQ => { run_label = self.stdio.exit_code.to_string() == v2.literal }
+                    BANGEQ => { run_label = self.stdio.exit_code.to_string() != v2.literal }
                     _ => {}
                 }
             }
-            "stdout" => {
+            STDOUT => {
                 match op.literal.as_str() {
-                    "==" => { run_label = self.stdio.stdout.contains(v2.literal.as_str()) }
-                    "!=" => { run_label = !self.stdio.stdout.contains(v2.literal.as_str()) }
+                    EQEQ => { run_label = self.stdio.stdout.contains(v2.literal.as_str()) }
+                    BANGEQ => { run_label = !self.stdio.stdout.contains(v2.literal.as_str()) }
                     _ => {}
                 }
             }
-            "stderr" => {
+            STDERR => {
                 match op.literal.as_str() {
-                    "==" => { run_label = self.stdio.stderr.contains(v2.literal.as_str()) }
-                    "!=" => { run_label = !self.stdio.stderr.contains(v2.literal.as_str()) }
+                    EQEQ => { run_label = self.stdio.stderr.contains(v2.literal.as_str()) }
+                    BANGEQ => { run_label = !self.stdio.stderr.contains(v2.literal.as_str()) }
                     _ => {}
                 }
             }
@@ -140,7 +156,7 @@ impl Evaluator {
         }
     }
 
-    fn resolve_comment(&self, statement: Statement) {
+    fn resolve_print(&self, statement: Statement) {
         println!("Reploy > {}", self.replace_variable(statement.arguments[0].literal.clone()))
     }
 

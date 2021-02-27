@@ -14,7 +14,7 @@ Task {
     #
     Run "mkdir {{PATH}}"
 
-    Comment "Step 1: Downloading V2Ray"
+    Print "Step 1: Downloading V2Ray"
 
     #
     # Download V2Ray from GitHub release.
@@ -23,7 +23,7 @@ Task {
         https://github.com/v2ray/v2ray-core/releases/download/{{V2RAY_VERSION}}/v2ray-linux-64.zip"
     When exit_code != "0" Goto DOWNLOAD_FAILED
 
-    Comment "Step 2: File decompression"
+    Print "Step 2: File decompression"
 
     #
     # Extract the V2Ray package to {{PATH}}.
@@ -43,7 +43,7 @@ Task {
     #
     Run "mkdir {{PATH}}/log"
 
-    Comment  "Step 3: Starting V2Ray"
+    Print  "Step 3: Starting V2Ray"
 
     #
     # Start the V2Ray service.
@@ -52,7 +52,7 @@ Task {
         -c {{PATH}}/config.json >/dev/null 2>&1 &\""
     When exit_code != "0" Goto START_FAILED
 
-    Comment "Finished: SUCCESS"
+    Print "Finished: SUCCESS"
 }
 
 Label CLEAN {
@@ -63,17 +63,17 @@ Label CLEAN {
 }
 
 Label DOWNLOAD_FAILED {
-    Comment "Download failed! Please check your network or try again."
+    Print "Download failed! Please check your network or try again."
     End
 }
 
 Label DECOMPRESSION_FAILED {
-    Comment "V2Ray decompression failed."
+    Print "V2Ray decompression failed."
     End
 }
 
 Label START_FAILED {
-    Comment "Failed to start V2Ray service."
+    Print "Failed to start V2Ray service."
     End
 }
 
