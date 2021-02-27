@@ -5,7 +5,7 @@ Set PATH "/home/cinus/v2ray"
 
 Task {
     #
-    # Remove the previous version of V2Ray.
+    # Remove installed V2Ray.
     #
     Run "sh -c \"[ -d {{PATH}} ] && echo yes \"" When stdout == "yes" Goto CLEAN
 
@@ -57,7 +57,7 @@ Task {
 
 Label CLEAN {
     #
-    # Remove installed V2Ray.
+    # Remove installed files.
     #
     Run "rm -rf {{PATH}}"
 }
