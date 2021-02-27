@@ -1,39 +1,65 @@
 Target root@105.239.136.127:22
 
 Set V2RAY_VERSION "v4.28.2"
-Set INSTALL_PATH "/home/cinus/v2ray"
+Set PATH "/home/cinus/v2ray"
 
 Task {
-    Run "sh -c \"[ -d {{INSTALL_PATH}} ] && echo yes \"" When stdout == "yes" Goto CLEAN
-    Run "mkdir {{INSTALL_PATH}}"
+    #
+    # Remove the previous version of V2Ray.
+    #
+    Run "sh -c \"[ -d {{PATH}} ] && echo yes \"" When stdout == "yes" Goto CLEAN
+
+    #
+    # Create the installation directory: {{PATH}}.
+    #
+    Run "mkdir {{PATH}}"
 
     Comment "Step 1: Downloading V2Ray"
 
-    Run "wget -P {{INSTALL_PATH}} \
+    #
+    # Download V2Ray from GitHub release.
+    #
+    Run "wget -P {{PATH}} \
         https://github.com/v2ray/v2ray-core/releases/download/{{V2RAY_VERSION}}/v2ray-linux-64.zip"
     When exit_code != "0" Goto DOWNLOAD_FAILED
 
     Comment "Step 2: File decompression"
 
-    Run "unzip {{INSTALL_PATH}}/v2ray-linux-64.zip \
-        -d {{INSTALL_PATH}}"
+    #
+    # Extract the V2Ray package to {{PATH}}.
+    #
+    Run "unzip {{PATH}}/v2ray-linux-64.zip \
+        -d {{PATH}}"
     When exit_code != "0" Goto DECOMPRESSION_FAILED
 
-    Run "rm -f {{INSTALL_PATH}}/config.json"
-    Snd "config.json"  "{{INSTALL_PATH}}/config.json"
+    #
+    # Upload V2Ray configuration file to {{PATH}}.
+    #
+    Run "rm -f {{PATH}}/config.json"
+    Snd "config.json"  "{{PATH}}/config.json"
+
+    #
+    # Used to store V2Ray log files.
+    #
+    Run "mkdir {{PATH}}/log"
 
     Comment  "Step 3: Starting V2Ray"
 
-    Run "mkdir {{INSTALL_PATH}}/log"
-    Run "sh -c \"nohup {{INSTALL_PATH}}/v2ray -c \
-        {{INSTALL_PATH}}/config.json >/dev/null 2>&1 &\""
+    #
+    # Start the V2Ray service.
+    #
+    Run "sh -c \"nohup {{PATH}}/v2ray \
+        -c {{PATH}}/config.json >/dev/null 2>&1 &\""
     When exit_code != "0" Goto START_FAILED
 
     Comment "Finished: SUCCESS"
 }
 
 Label CLEAN {
-    Run "rm -rf {{INSTALL_PATH}}"
+    #
+    # Remove installed V2Ray.
+    #
+    Run "rm -rf {{PATH}}"
 }
 
 Label DOWNLOAD_FAILED {

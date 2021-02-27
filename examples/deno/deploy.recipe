@@ -1,12 +1,27 @@
 Target root@105.239.136.127:22
 
+#
+# Set the release version as a variable named "DENO_VERSION".
+#
 Set DENO_VERSION "v1.4.0"
+
+#
+# Set the script file path.
+#
 Set SCRIPT_FILE "/home/cinus/hello-world.js"
 
 Task {
-    Comment "Step 1: Install Deno"
+    #
+    # Download Deno from GitHub release.
+    #
     # Run "wget https://github.com/denoland/deno/releases/download/{{DENO_VERSION}}/deno-x86_64-unknown-linux-gnu.zip"
+
+    Comment "Step 1: Install Deno"
     # Run "unzip deno-x86_64-unknown-linux-gnu.zip"
+
+    #
+    # Check Deno installed correctly.
+    #
     Run "./deno -V" When stdout == "deno 1.4.0" Goto A
     Run "./deno -V" When stdout != "deno 1.4.0" Goto B
     Comment "Task finished"
