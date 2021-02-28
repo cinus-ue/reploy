@@ -4,16 +4,8 @@ use std::path::PathBuf;
 use regex::Regex;
 use ssh2::Session;
 
-use internal::{Recipe, Statement};
-use internal::Stdio;
+use internal::*;
 use internal::token::Type;
-use internal::util;
-
-const EQEQ: &str = "==";
-const BANGEQ: &str = "!=";
-const STDOUT: &str = "stdout";
-const STDERR: &str = "stderr";
-const EXIT_CODE: &str = "exit_code";
 
 pub struct Evaluator {
     recipe: Recipe,
@@ -132,27 +124,18 @@ impl Evaluator {
         let mut run_label = false;
         match v1.literal.as_str() {
             EXIT_CODE => {
-                match op.literal.as_str() {
-                    EQEQ => { run_label = self.stdio.exit_code.to_string() == v2.literal }
-                    BANGEQ => { run_label = self.stdio.exit_code.to_string() != v2.literal }
-                    _ => {}
-                }
+                run_label = self.stdio.exit_code.to_string() == v2.literal
             }
             STDOUT => {
-                match op.literal.as_str() {
-                    EQEQ => { run_label = self.stdio.stdout.contains(v2.literal.as_str()) }
-                    BANGEQ => { run_label = !self.stdio.stdout.contains(v2.literal.as_str()) }
-                    _ => {}
-                }
+                run_label = self.stdio.stdout.contains(v2.literal.as_str())
             }
             STDERR => {
-                match op.literal.as_str() {
-                    EQEQ => { run_label = self.stdio.stderr.contains(v2.literal.as_str()) }
-                    BANGEQ => { run_label = !self.stdio.stderr.contains(v2.literal.as_str()) }
-                    _ => {}
-                }
+                run_label = self.stdio.stderr.contains(v2.literal.as_str())
             }
             _ => {}
+        }
+        if op.literal.as_str() != EQEQ {
+            run_label = !run_label;
         }
         if run_label {
             self.resolve_statement(self.recipe.labels.get(statement.arguments[4].literal.as_str()).unwrap().to_vec())
@@ -167,15 +150,15 @@ impl Evaluator {
         println!("Reploy > {}", self.replace_variable(statement.arguments[0].literal.clone()))
     }
 
-    fn replace_variable(&self, mut arg: String) -> String {
-        for cap in Regex::new(r"\{\{(.*?)}}").unwrap().captures_iter(&arg.clone()) {
+    fn replace_variable(&self, mut s: String) -> String {
+        for cap in Regex::new(r"\{\{(.*?)}}").unwrap().captures_iter(&s.clone()) {
             let var = cap.get(0).unwrap().as_str();
             let key = var.trim_start_matches("{{").trim_end_matches("}}");
             if self.recipe.variables.contains_key(key) {
-                arg = arg.replace(var, self.recipe.variables.get(key).unwrap().as_str());
+                s = s.replace(var, self.recipe.variables.get(key).unwrap().as_str());
             }
         }
-        arg
+        s
     }
 
     fn resolve_target(&mut self, statement: Statement) {

@@ -8,6 +8,11 @@ pub mod lexer;
 mod util;
 mod token;
 
+const EQEQ: &str = "==";
+const STDOUT: &str = "stdout";
+const STDERR: &str = "stderr";
+const EXIT_CODE: &str = "exit_code";
+
 #[derive(Debug)]
 pub struct Recipe {
     pub statements: Vec<Statement>,
