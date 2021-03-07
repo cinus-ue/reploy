@@ -21,11 +21,10 @@ fn main() {
                  .value_name("KEY FILE")
                  .help("The identity file to use for key-based authentication").takes_value(true),
         )
-        .arg(
-            Arg::with_name("verbose")
-                .short("v")
-                .long("verbose")
-                .help("Enable verbose output"),
+        .arg(Arg::with_name("verbose")
+                 .short("v")
+                 .long("verbose")
+                 .help("Enable verbose output"),
         )
         .subcommand(SubCommand::with_name("run")
             .about("Run the specified recipe")

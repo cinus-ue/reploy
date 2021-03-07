@@ -20,10 +20,8 @@ pub fn ssh_key() -> PathBuf {
 pub fn upload_file(local: &String, remote: &String, sftp: &Sftp) {
     let local_path = Path::new(local);
     if local_path.is_file() {
-        let local_file = File::open(local_path).unwrap();
-        let remote_file = sftp.create(Path::new(remote)).unwrap();
-        let mut file_reader = BufReader::with_capacity(BUF_SIZE, local_file);
-        let mut file_writer = BufWriter::with_capacity(BUF_SIZE, remote_file);
+        let mut file_reader = BufReader::with_capacity(BUF_SIZE, File::open(local_path).unwrap());
+        let mut file_writer = BufWriter::with_capacity(BUF_SIZE, sftp.create(Path::new(remote)).unwrap());
         std::io::copy(&mut file_reader, &mut file_writer).unwrap();
     } else {
         panic!("invalid path or file name")
@@ -35,10 +33,8 @@ pub fn download_file(remote: &String, local: &String, sftp: &Sftp) {
     match sftp.stat(remote_path) {
         Ok(f) => {
             if f.is_file() {
-                let local_file = File::create(&Path::new(local)).unwrap();
-                let remote_file = sftp.open(remote_path).unwrap();
-                let mut file_writer = BufWriter::with_capacity(BUF_SIZE, local_file);
-                let mut file_reader = BufReader::with_capacity(BUF_SIZE, remote_file);
+                let mut file_writer = BufWriter::with_capacity(BUF_SIZE, File::create(&Path::new(local)).unwrap());
+                let mut file_reader = BufReader::with_capacity(BUF_SIZE, sftp.open(remote_path).unwrap());
                 std::io::copy(&mut file_reader, &mut file_writer).unwrap();
             }
         }
