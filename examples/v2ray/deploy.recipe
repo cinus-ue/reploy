@@ -8,10 +8,9 @@ Task {
     Run "rm -rf {{V2RAY_PATH}}"
     Run "mkdir {{V2RAY_PATH}}"  Run "mkdir {{V2RAY_PATH}}/log"
 
-    # Run "wget -P {{V2RAY_PATH}} \
-    # https://github.com/v2ray/v2ray-core/releases/download/{{V2RAY_VERSION}}/v2ray-linux-64.zip"
-    # When exit_code != "0" Goto CMD_ERROR
-    # Snd "v2ray/v2ray-linux-64.zip" "{{V2RAY_PATH}}/v2ray-linux-64.zip"
+    Run "wget -P {{V2RAY_PATH}} \
+        https://github.com/v2ray/v2ray-core/releases/download/{{V2RAY_VERSION}}/v2ray-linux-64.zip"
+    When exit_code != "0" Goto CMD_ERROR
 
     Run "unzip {{V2RAY_PATH}}/v2ray-linux-64.zip -d {{V2RAY_PATH}}"
     Snd "v2ray/config.json" "{{V2RAY_PATH}}/config.json"
@@ -20,7 +19,7 @@ Task {
     Run "su - {{USER_NAME}} -c \"nohup {{V2RAY_PATH}}/v2ray \
             -config {{V2RAY_PATH}}/config.json >/dev/null 2>&1 &\""
     When exit_code != "0" Goto CMD_ERROR  Call GET_PID
-    
+
     Print "V2RAY:SUCCESS"
 }
 
