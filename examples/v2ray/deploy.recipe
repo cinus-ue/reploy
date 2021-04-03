@@ -1,67 +1,34 @@
 Target root@105.239.136.127:22
 
+Set USER_NAME  cinus
 Set V2RAY_VERSION "v4.28.2"
-Set PATH "/home/cinus/v2ray"
+Set V2RAY_PATH "/home/cinus/v2ray"
 
 Task {
-    #
-    # Remove installed V2Ray.
-    #
     Call CLEAN_FILES
 
-    #
-    # Create the installation directory: {{PATH}}.
-    #
-    Run "mkdir {{PATH}}"
+    Run "mkdir {{V2RAY_PATH}}"
+    Run "mkdir {{V2RAY_PATH}}/log"
 
-    Print "Step 1: Downloading V2Ray"
+    # Run "wget -P {{V2RAY_PATH}} \
+    #    https://github.com/v2ray/v2ray-core/releases/download/{{V2RAY_VERSION}}/v2ray-linux-64.zip"
+    # When exit_code != "0" Goto CMD_ERROR
 
-    #
-    # Download V2Ray from GitHub release.
-    #
-    Run "wget -P {{PATH}} \
-        https://github.com/v2ray/v2ray-core/releases/download/{{V2RAY_VERSION}}/v2ray-linux-64.zip"
-    When exit_code != "0" Goto DOWNLOAD_FAILED
+    # Snd "v2ray/v2ray-linux-64.zip"             "{{V2RAY_PATH}}/v2ray-linux-64.zip"
 
-    Print "Step 2: File decompression"
+    Run "unzip {{V2RAY_PATH}}/v2ray-linux-64.zip -d {{V2RAY_PATH}}"
+    Snd "v2ray/config.json"       "{{V2RAY_PATH}}/config.json"
+    Run "chown {{USER_NAME}}:{{USER_NAME}} -R {{V2RAY_PATH}}"
 
-    #
-    # Extract the V2Ray package to {{PATH}}.
-    #
-    Run "unzip {{PATH}}/v2ray-linux-64.zip \
-        -d {{PATH}}"
-    When exit_code != "0" Goto DECOMPRESSION_FAILED
-
-    #
-    # Upload V2Ray configuration file to {{PATH}}.
-    #
-    Run "rm -f {{PATH}}/config.json"
-    Snd "config.json"  "{{PATH}}/config.json"
-
-    #
-    # Used to store V2Ray log files.
-    #
-    Run "mkdir {{PATH}}/log"
-
-    Print  "Step 3: Starting V2Ray"
-
-    #
-    # Start the V2Ray service.
-    #
-    Run "sh -c \"nohup {{PATH}}/v2ray \
-        -c {{PATH}}/config.json >/dev/null 2>&1 &\""
-    When exit_code != "0" Goto START_FAILED
+    Run "su - {{USER_NAME}} -c \"nohup {{V2RAY_PATH}}/v2ray \
+            -config {{V2RAY_PATH}}/config.json >/dev/null 2>&1 &\""
+    When exit_code != "0" Goto CMD_ERROR
 
     Call GET_PID
-    Run "kill -9 {{PID}}"
-    Call GET_PID
-    Print "Finished: SUCCESS"
+    Print "V2RAY:SUCCESS"
 }
 
 Label CLEAN_FILES {
-    #
-    # Remove installed files.
-    #
     Run "rm -rf {{PATH}}"
 }
 
@@ -71,18 +38,10 @@ Label GET_PID {
      Print "V2Ray Process ID: {{PID}}"
 }
 
-Label DOWNLOAD_FAILED {
-    Print "Download failed! Please check your network or try again."
-    End
-}
-
-Label DECOMPRESSION_FAILED {
-    Print "V2Ray decompression failed."
-    End
-}
-
-Label START_FAILED {
-    Print "Failed to start V2Ray service."
+Label CMD_ERROR {
+    Print "FAILED TO RUN COMMAND."
+    Let STDERR = stderr Print "STDERR:{{STDERR}}"
+    Let STDOUT = stdout Print "STDOUT:{{STDOUT}}"
     End
 }
 

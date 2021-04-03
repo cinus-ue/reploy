@@ -52,8 +52,7 @@ Label B {
 
 Label C {
     Print "label C"
-    Let RESULT = stdout
-    Print "Command output: {{RESULT}}"
+    Let RESULT = stdout Print "Command output: {{RESULT}}"
     Run "rm -f {{SCRIPT_FILE}}"
     # End
 }
