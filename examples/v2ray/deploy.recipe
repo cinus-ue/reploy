@@ -29,7 +29,7 @@ Task {
 }
 
 Label CLEAN_FILES {
-    Run "rm -rf {{PATH}}"
+    Run "rm -rf {{V2RAY_PATH}}"
 }
 
 Label GET_PID {
