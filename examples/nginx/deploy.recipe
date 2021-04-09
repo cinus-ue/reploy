@@ -24,11 +24,9 @@ Task {
 
 Label UPLOAD_CONF {
     Run "mkdir /home/{{USER_NAME}}/cert"
+    Snd "nginx/nginx.conf"   "/etc/nginx/nginx.conf"
     Snd "cert/server.crt"    "/home/{{USER_NAME}}/cert/server.crt"
     Snd "cert/server.key"    "/home/{{USER_NAME}}/cert/server.key"
-
-    Snd "nginx/nginx.conf"    "/etc/nginx/nginx.conf"
-    Snd "nginx/default"       "/etc/nginx/sites-available/default"
 }
 
 Label CMD_ERROR {
