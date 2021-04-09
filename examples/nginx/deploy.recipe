@@ -27,12 +27,8 @@ Label UPLOAD_CONF {
     Snd "cert/server.crt"    "/home/{{USER_NAME}}/cert/server.crt"
     Snd "cert/server.key"    "/home/{{USER_NAME}}/cert/server.key"
 
-    Run "mkdir /home/{{USER_NAME}}/nginx"
-    Snd "nginx/nginx.conf"    "/home/{{USER_NAME}}/nginx/nginx.conf"
-    Snd "nginx/default"       "/home/{{USER_NAME}}/nginx/default"
-
-    Run "cp /home/{{USER_NAME}}/nginx/nginx.conf /etc/nginx/"
-    Run "cp /home/{{USER_NAME}}/nginx/default /etc/nginx/sites-available/"
+    Snd "nginx/nginx.conf"    "/etc/nginx/nginx.conf"
+    Snd "nginx/default"       "/etc/nginx/sites-available/default"
 }
 
 Label CMD_ERROR {
