@@ -15,7 +15,7 @@ impl Parser<'_> {
 
     pub fn parse(&mut self) -> Recipe {
         let mut recipe = Recipe {
-            statements: Vec::new(),
+            task: Vec::new(),
             variables: HashMap::new(),
             labels: HashMap::new(),
         };
@@ -25,7 +25,7 @@ impl Parser<'_> {
                 Type::TARGET => {
                     let mut arguments: Vec<Token> = Vec::new();
                     arguments.push(self.lexer.next_token());
-                    recipe.statements.push(Statement { token, arguments });
+                    recipe.task.push(Statement { token, arguments });
                 }
                 Type::SET => {
                     let k = self.lexer.next_token();
@@ -33,7 +33,7 @@ impl Parser<'_> {
                     recipe.variables.insert(k.literal, v.literal);
                 }
                 Type::TASK => {
-                    recipe.statements.append(&mut self.parse_statement());
+                    recipe.task.append(&mut self.parse_statement());
                 }
                 Type::LABEL => {
                     let label = self.lexer.next_token();

@@ -3,21 +3,36 @@ Target root@105.239.136.127:22
 Set USER_NAME  cinus
 
 Task {
+    # Install nginx server
     Run "apt update"
     Run "apt install -y nginx" When exit_code != "0" Goto CMD_ERROR
+
+    # Check nginx version
     Run "nginx -v" Let NGINX_VERSION = stdout Print "{{NGINX_VERSION}}"
 
+    # Upload nginx configuration file
+    Call UPLOAD_CONF
+
+    # Check nginx configuration syntax
+    Run "nginx -t" When exit_code != "0" Goto CMD_ERROR
+
+    # Reload nginx
+    Run "nginx -s reload" When exit_code != "0" Goto CMD_ERROR
+
+    Print "NGINX:SUCCESS"
+}
+
+Label UPLOAD_CONF {
     Run "mkdir /home/{{USER_NAME}}/cert"
     Snd "cert/server.crt"    "/home/{{USER_NAME}}/cert/server.crt"
     Snd "cert/server.key"    "/home/{{USER_NAME}}/cert/server.key"
+
     Run "mkdir /home/{{USER_NAME}}/nginx"
     Snd "nginx/nginx.conf"    "/home/{{USER_NAME}}/nginx/nginx.conf"
     Snd "nginx/default"       "/home/{{USER_NAME}}/nginx/default"
+
     Run "cp /home/{{USER_NAME}}/nginx/nginx.conf /etc/nginx/"
     Run "cp /home/{{USER_NAME}}/nginx/default /etc/nginx/sites-available/"
-    Run "nginx -t" When exit_code != "0" Goto CMD_ERROR
-    Run "nginx -s reload" When exit_code != "0" Goto CMD_ERROR
-    Print "NGINX:SUCCESS"
 }
 
 Label CMD_ERROR {

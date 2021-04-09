@@ -16,8 +16,8 @@ Task {
     Snd "v2ray/config.json" "{{V2RAY_PATH}}/config.json"
     Run "chown {{USER_NAME}}:{{USER_NAME}} -R {{V2RAY_PATH}}"
 
-    Run "su - {{USER_NAME}} -c \"nohup {{V2RAY_PATH}}/v2ray \
-            -config {{V2RAY_PATH}}/config.json >/dev/null 2>&1 &\""
+    Run "su - {{USER_NAME}} -c \"nohup {{V2RAY_PATH}}/v2ray -config \
+        {{V2RAY_PATH}}/config.json >/dev/null 2>&1 &\""
     When exit_code != "0" Goto CMD_ERROR  Call GET_PID
 
     Print "V2RAY:SUCCESS"

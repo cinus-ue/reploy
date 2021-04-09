@@ -15,7 +15,7 @@ const EXIT_CODE: &str = "exit_code";
 
 #[derive(Debug)]
 pub struct Recipe {
-    pub statements: Vec<Statement>,
+    pub task: Vec<Statement>,
     pub variables: HashMap<String, String>,
     pub labels: HashMap<String, Vec<Statement>>,
 }

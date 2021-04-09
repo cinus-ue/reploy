@@ -27,8 +27,8 @@ Task {
     #
     # Check Deno installed correctly.
     #
-    Run "./deno -V" When stdout == "deno 1.4.0" Goto A
-    Run "./deno -V" When stdout != "deno 1.4.0" Goto B
+    Run "deno -V" When stdout == "deno 1.4.0" Goto A
+    Run "deno -V" When stdout != "deno 1.4.0" Goto B
     Print "Task finished"
 }
 
@@ -42,7 +42,7 @@ Label A {
     #
     # Run JavaScript code.
     #
-    Run "./deno run {{SCRIPT_FILE}}" When exit_code == "0" Goto C
+    Run "deno run {{SCRIPT_FILE}}" When exit_code == "0" Goto C
     End
 }
 

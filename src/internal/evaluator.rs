@@ -33,7 +33,7 @@ impl Evaluator {
     }
 
     pub fn run(&mut self) {
-        self.resolve_statement(self.recipe.statements.to_vec());
+        self.resolve_statement(self.recipe.task.to_vec());
         assert!(self.ssh_session.disconnect(None, "connection closing", None).is_ok());
     }
 
