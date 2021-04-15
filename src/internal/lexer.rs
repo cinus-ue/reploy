@@ -3,24 +3,29 @@ use std::str::Chars;
 use internal::token::{lookup_identifier, Token, Type};
 
 const EOF_CHAR: char = '\0';
-const CR: char = '\u{000D}';
+//const CR: char = '\u{000D}';
 const LF: char = '\u{000A}';
 
 
-pub struct Lexer<'a> {
+pub struct Lexer {
     initial_len: usize,
     read_len: usize,
+    line_num: usize,
     char: char,
-    chars: Chars<'a>,
+    source_code: String,
 }
 
-impl<'a> Lexer<'a> {
-    pub fn new(input: &str) -> Lexer {
+impl Lexer {
+    pub fn new(mut input: String) -> Lexer {
+        if has_crlf_line_endings(&input) {
+            input = input.replace("\r\n", "\n");
+        }
         Lexer {
             initial_len: input.len(),
             read_len: 0,
+            line_num: 0,
             char: input.chars().nth(0).unwrap(),
-            chars: input.chars(),
+            source_code: input,
         }
     }
 
@@ -33,13 +38,15 @@ impl<'a> Lexer<'a> {
         return match self.char {
             EOF_CHAR => {
                 Token {
-                    literal: String::from("EOF"),
+                    literal: String::new(),
+                    line_num: self.line_num,
                     token_type: Type::EOF,
                 }
             }
             '"' => {
                 Token {
                     literal: self.read_string(),
+                    line_num: self.line_num,
                     token_type: Type::STRING,
                 }
             }
@@ -47,6 +54,7 @@ impl<'a> Lexer<'a> {
                 let identifier = self.read_identifier();
                 Token {
                     literal: identifier.clone(),
+                    line_num: self.line_num,
                     token_type: lookup_identifier(identifier),
                 }
             }
@@ -57,8 +65,8 @@ impl<'a> Lexer<'a> {
         self.read_len == self.initial_len
     }
 
-    fn chars(&self) -> Chars<'a> {
-        self.chars.clone()
+    fn chars(&self) -> Chars {
+        self.source_code.chars().clone()
     }
 
     fn nth_char(&self, n: usize) -> char {
@@ -73,21 +81,15 @@ impl<'a> Lexer<'a> {
                 self.read_char();
                 break;
             }
+            // unterminated string
             if self.char == EOF_CHAR {
-                // unterminated string
                 break;
             }
             if self.char == '\\' {
-                if self.peek_char() == LF {
-                    self.read_char();
+                if is_lf(self.peek_char()) {
+                    self.skip_source_code(1);
                     continue;
                 }
-                if self.peek_char() == CR && self.nth_char(self.read_len + 2) == LF {
-                    self.read_char();
-                    self.read_char();
-                    continue;
-                }
-
                 self.read_char();
 
                 if self.char == 'n' {
@@ -98,12 +100,6 @@ impl<'a> Lexer<'a> {
                 }
                 if self.char == 't' {
                     self.char = '\t'
-                }
-                if self.char == '"' {
-                    self.char = '"'
-                }
-                if self.char == '\\' {
-                    self.char = '\\'
                 }
             }
             chars.push(self.char);
@@ -133,6 +129,13 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    fn skip_source_code(&mut self, mut len: usize) {
+        while len > 0 {
+            self.read_char();
+            len -= 1;
+        }
+    }
+
     fn peek_char(&self) -> char {
         return self.nth_char(self.read_len + 1);
     }
@@ -143,6 +146,10 @@ impl<'a> Lexer<'a> {
             self.read_len += 1;
         }
         self.char = self.nth_char(self.read_len);
+        // new line
+        if is_lf(self.char) {
+            self.line_num += 1;
+        }
     }
 }
 
@@ -180,6 +187,25 @@ fn is_whitespace(c: char) -> bool {
 fn is_identifier(c: char) -> bool {
     return !is_whitespace(c) && !is_end(c);
 }
+
+fn has_crlf_line_endings(s: &str) -> bool {
+    // Only check the first line.
+    if let Some(lf) = s.find('\n') {
+        s[..lf].ends_with('\r')
+    } else {
+        false
+    }
+}
+
+// unix style
+fn is_lf(c: char) -> bool {
+    return c == LF;
+}
+
+// windows style
+//fn is_crlf(c1: char, c2: char) -> bool {
+//    return c1 == CR && c2 == LF;
+//}
 
 fn is_end(c: char) -> bool {
     return c == EOF_CHAR;

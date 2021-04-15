@@ -4,11 +4,11 @@ use internal::{Recipe, Statement};
 use internal::lexer::Lexer;
 use internal::token::{Token, Type};
 
-pub struct Parser<'a> {
-    lexer: Lexer<'a>,
+pub struct Parser {
+    lexer: Lexer,
 }
 
-impl Parser<'_> {
+impl Parser {
     pub fn new(lexer: Lexer) -> Parser {
         Parser { lexer }
     }

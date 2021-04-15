@@ -1,0 +1,20 @@
+Target root@105.239.136.127:22
+
+Task {
+    Run "whoami"    Call CHECK_EXIT_CODE  Let USER = stdout         Print "User:{{USER}}"
+    Run "uname -a"  Call CHECK_EXIT_CODE  Let SYSTEM_INFO = stdout  Print "System Info:\n{{SYSTEM_INFO}}"
+    Run "pwd"       Call CHECK_EXIT_CODE  Let CURRENT_DIR = stdout  Print "Current Directory:{{CURRENT_DIR}}"
+    Run "echo \"hello world!\"" When stdout != "hello world" Goto CMD_ERROR
+}
+
+Label CHECK_EXIT_CODE {
+    When exit_code != "0" Goto CMD_ERROR
+}
+
+Label CMD_ERROR {
+    Print "FAILED TO RUN COMMAND."
+    Let STDERR = stderr Print "STDERR:{{STDERR}}"
+    Let STDOUT = stdout Print "STDOUT:{{STDOUT}}"
+    End
+}
+

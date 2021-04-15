@@ -24,7 +24,7 @@ pub fn upload_file(local: &String, remote: &String, sftp: &Sftp) {
         let mut file_writer = BufWriter::with_capacity(BUF_SIZE, sftp.create(Path::new(remote)).unwrap());
         std::io::copy(&mut file_reader, &mut file_writer).unwrap();
     } else {
-        panic!("invalid path or file name")
+        panic!("invalid path or file name:{}", local)
     }
 }
 
@@ -52,7 +52,7 @@ pub fn consume_stdio(channel: &mut Channel) -> Stdio {
 
     return Stdio {
         exit_code: channel.exit_status().unwrap(),
-        stdout,
-        stderr,
+        stdout: stdout.trim().to_string(),
+        stderr: stderr.trim().to_string(),
     };
 }

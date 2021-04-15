@@ -13,7 +13,7 @@ pub struct Evaluator {
     is_verbose: bool,
     identity: PathBuf,
     ssh_session: Session,
-    stdio: Stdio,
+    ssh_stdio: Stdio,
 }
 
 impl Evaluator {
@@ -24,7 +24,7 @@ impl Evaluator {
             is_verbose: verbose,
             identity: util::ssh_key(),
             ssh_session: Session::new().unwrap(),
-            stdio: Stdio { exit_code: 0, stdout: String::new(), stderr: String::new() },
+            ssh_stdio: Stdio { exit_code: 0, stdout: String::new(), stderr: String::new() },
         }
     }
 
@@ -41,6 +41,9 @@ impl Evaluator {
         for statement in statements {
             if self.is_end {
                 break;
+            }
+            if self.is_verbose {
+                println!("resolve statement: {:?}", statement)
             }
             match statement.token.token_type {
                 Type::TARGET => {
@@ -82,16 +85,16 @@ impl Evaluator {
             println!("run command: {}", cmd);
         }
         channel.exec(cmd.as_str()).expect("failed to run command");
-        self.stdio = util::consume_stdio(&mut channel);
+        self.ssh_stdio = util::consume_stdio(&mut channel);
     }
 
     fn resolve_let(&mut self, statement: Statement) {
         match statement.arguments[2].literal.as_str() {
             STDOUT => {
-                self.recipe.variables.insert(statement.arguments[0].literal.clone(), self.stdio.stdout.clone());
+                self.recipe.variables.insert(statement.arguments[0].literal.clone(), self.ssh_stdio.stdout.clone());
             }
             STDERR => {
-                self.recipe.variables.insert(statement.arguments[0].literal.clone(), self.stdio.stderr.clone());
+                self.recipe.variables.insert(statement.arguments[0].literal.clone(), self.ssh_stdio.stderr.clone());
             }
             _ => {}
         }
@@ -124,13 +127,13 @@ impl Evaluator {
         let mut run_label = false;
         match v1.literal.as_str() {
             EXIT_CODE => {
-                run_label = self.stdio.exit_code.to_string() == v2.literal
+                run_label = self.ssh_stdio.exit_code.to_string() == v2.literal
             }
             STDOUT => {
-                run_label = self.stdio.stdout.contains(v2.literal.as_str())
+                run_label = self.ssh_stdio.stdout.contains(v2.literal.as_str())
             }
             STDERR => {
-                run_label = self.stdio.stderr.contains(v2.literal.as_str())
+                run_label = self.ssh_stdio.stderr.contains(v2.literal.as_str())
             }
             _ => {}
         }

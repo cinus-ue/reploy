@@ -14,7 +14,7 @@ mod internal;
 
 fn main() {
     let matches = App::new("reploy")
-        .version("0.1.7")
+        .version("0.1.8")
         .arg(Arg::with_name("identity")
                  .short("i")
                  .long("identity")
@@ -37,7 +37,7 @@ fn main() {
     if let Some(arg_matches) = matches.subcommand_matches("run") {
         let start = Instant::now();
         let recipe = std::fs::read_to_string(arg_matches.value_of("recipe").unwrap()).expect("Could not read recipe file");
-        let lexer = Lexer::new(&recipe);
+        let lexer = Lexer::new(recipe);
         let mut parser = Parser::new(lexer);
         let mut evaluator = Evaluator::new(parser.parse(), matches.is_present("verbose"));
         if matches.is_present("identity") {

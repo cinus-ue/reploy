@@ -1,6 +1,7 @@
 #[derive(Clone, Debug)]
 pub struct Token {
     pub token_type: Type,
+    pub line_num: usize,
     pub literal: String,
 }
 
