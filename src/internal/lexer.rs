@@ -24,7 +24,7 @@ impl Lexer {
             initial_len: input.len(),
             read_len: 0,
             line_num: 0,
-            char: input.chars().nth(0).unwrap(),
+            char: input.chars().nth(0).unwrap_or(EOF_CHAR),
             source_code: input,
         }
     }
