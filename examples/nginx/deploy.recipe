@@ -3,20 +3,30 @@ Target root@105.239.136.127:22
 Set USER_NAME  cinus
 
 Task {
+    #
     # Install nginx server
+    #
     Run "apt update"
     Run "apt install -y nginx" When exit_code != "0" Goto CMD_ERROR
 
+    #
     # Check nginx version
+    #
     Run "nginx -v" Let NGINX_VERSION = stdout Print "{{NGINX_VERSION}}"
 
+    #
     # Upload nginx configuration file
+    #
     Call UPLOAD_CONF
 
+    #
     # Check nginx configuration syntax
+    #
     Run "nginx -t" When exit_code != "0" Goto CMD_ERROR
 
+    #
     # Reload nginx
+    #
     Run "nginx -s reload" When exit_code != "0" Goto CMD_ERROR
 
     Print "NGINX:SUCCESS"

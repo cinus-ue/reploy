@@ -5,28 +5,49 @@ Set V2RAY_VERSION "v4.28.2"
 Set V2RAY_PATH "/home/cinus/v2ray"
 
 Task {
-    Run "rm -rf {{V2RAY_PATH}}"
-    Run "mkdir {{V2RAY_PATH}}"  Run "mkdir {{V2RAY_PATH}}/log"
+    Run "rm -rf {{V2RAY_PATH}}" Run "mkdir {{V2RAY_PATH}}" Run "mkdir {{V2RAY_PATH}}/log"
 
+    #
+    # Download V2Ray from GitHub release
+    #
     Run "wget -P {{V2RAY_PATH}} \
         https://github.com/v2ray/v2ray-core/releases/download/{{V2RAY_VERSION}}/v2ray-linux-64.zip"
     When exit_code != "0" Goto CMD_ERROR
 
+    #
+    # Extract the V2Ray package to {{V2RAY_PATH}}
+    #
     Run "unzip {{V2RAY_PATH}}/v2ray-linux-64.zip -d {{V2RAY_PATH}}"
+
+    #
+    # Upload configuration file to {{V2RAY_PATH}}
+    #
     Snd "v2ray/config.json" "{{V2RAY_PATH}}/config.json"
+
+    #
+    # Change file owner/group
+    #
     Run "chown {{USER_NAME}}:{{USER_NAME}} -R {{V2RAY_PATH}}"
 
+    #
+    # Start V2Ray
+    #
     Run "su - {{USER_NAME}} -c \"nohup {{V2RAY_PATH}}/v2ray -config \
         {{V2RAY_PATH}}/config.json >/dev/null 2>&1 &\""
-    When exit_code != "0" Goto CMD_ERROR  Call GET_PID
+    When exit_code != "0" Goto CMD_ERROR
+
+    #
+    # Print the process ID
+    #
+    Call GET_PID
 
     Print "V2RAY:SUCCESS"
 }
 
 Label GET_PID {
-     Run "ps -ef | grep v2ray | grep -v grep | awk '{print $2}'"
-     Let PID = stdout
-     Print "V2Ray Process ID: {{PID}}"
+    Run "ps -ef | grep v2ray | grep -v grep | awk '{print $2}'"
+    Let PID = stdout
+    Print "V2Ray Process ID: {{PID}}"
 }
 
 Label CMD_ERROR {
