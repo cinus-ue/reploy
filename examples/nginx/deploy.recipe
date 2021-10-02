@@ -1,42 +1,36 @@
 Target root@105.239.136.127:22
 
-Set USER_NAME  cinus
+Set NGINX_CONF_FILE /etc/nginx/nginx.conf
 
 Task {
     #
     # Install nginx server
     #
-    Run "apt update"
-    Run "apt install -y nginx" When exit_code != "0" Goto CMD_ERROR
-
-    #
-    # Check nginx version
-    #
-    Run "nginx -v" Let NGINX_VERSION = stdout Print "{{NGINX_VERSION}}"
+    Run "apt update" Run "apt install -y nginx" Call CHECK_EXIT_CODE
+    Run "nginx -v 2>&1" Let NGINX_VERSION = stdout Print "{{NGINX_VERSION}}"
 
     #
     # Upload nginx configuration file
     #
-    Call UPLOAD_CONF
+    Snd "nginx/nginx.conf" "{{NGINX_CONF_FILE}}"
 
     #
     # Check nginx configuration syntax
     #
-    Run "nginx -t" When exit_code != "0" Goto CMD_ERROR
+    Run "nginx -t -c {{NGINX_CONF_FILE}} 2>&1" Call CHECK_EXIT_CODE Let CONF_TEST = stdout  Print "NGINX CONF TEST:{{CONF_TEST}}"
 
     #
     # Reload nginx
     #
-    Run "nginx -s reload" When exit_code != "0" Goto CMD_ERROR
+    Run "nginx -s reload" Call CHECK_EXIT_CODE
 
+    Run "service nginx status" Let NGINX_STATUS = stdout  Print "NGINX STATUS:{{NGINX_STATUS}}"
     Print "NGINX:SUCCESS"
 }
 
-Label UPLOAD_CONF {
-    Run "mkdir /home/{{USER_NAME}}/cert"
-    Snd "nginx/nginx.conf"   "/etc/nginx/nginx.conf"
-    Snd "cert/server.crt"    "/home/{{USER_NAME}}/cert/server.crt"
-    Snd "cert/server.key"    "/home/{{USER_NAME}}/cert/server.key"
+
+Label CHECK_EXIT_CODE {
+    When exit_code != "0" Goto CMD_ERROR
 }
 
 Label CMD_ERROR {
