@@ -30,7 +30,7 @@ Task {
 
 
 Label CHECK_EXIT_CODE {
-    When exit_code != "0" Goto CMD_ERROR
+    When exit_code != "0" CMD_ERROR
 }
 
 Label CMD_ERROR {

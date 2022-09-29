@@ -58,14 +58,14 @@ impl Parser {
                 Type::RUN | Type::PRINT | Type::CALL => {
                     len = 1;
                 }
-                Type::SND | Type::RCV => {
+                Type::SND | Type::RCV | Type::ASK | Type::PWD => {
                     len = 2;
                 }
                 Type::LET => {
                     len = 3;
                 }
                 Type::WHEN => {
-                    len = 5;
+                    len = 4;
                 }
                 Type::LBRACE => {
                     continue;

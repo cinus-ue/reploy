@@ -12,7 +12,7 @@ Task {
     #
     Run "wget -P {{V2RAY_PATH}} \
         https://github.com/v2ray/v2ray-core/releases/download/{{V2RAY_VERSION}}/v2ray-linux-64.zip"
-    When exit_code != "0" Goto CMD_ERROR
+    When exit_code != "0" CMD_ERROR
 
     #
     # Extract the V2Ray package to {{V2RAY_PATH}}
@@ -34,7 +34,7 @@ Task {
     #
     Run "su - {{USER_NAME}} -c \"nohup {{V2RAY_PATH}}/v2ray -config \
         {{V2RAY_PATH}}/config.json >/dev/null 2>&1 &\""
-    When exit_code != "0" Goto CMD_ERROR
+    When exit_code != "0" CMD_ERROR
 
     #
     # Print the process ID

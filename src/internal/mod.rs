@@ -8,6 +8,8 @@ pub mod lexer;
 mod util;
 mod token;
 
+const HOST_KEY: &str = "$HOST";
+
 const EQEQ: &str = "==";
 const STDOUT: &str = "stdout";
 const STDERR: &str = "stderr";

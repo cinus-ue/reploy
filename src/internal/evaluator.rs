@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use regex::Regex;
 use ssh2::Session;
+use dialoguer::{theme::ColorfulTheme, Input, Password};
 
 use internal::*;
 use internal::token::Type;
@@ -58,6 +59,12 @@ impl Evaluator {
                 Type::LET => {
                     self.resolve_let(statement)
                 }
+                Type::ASK => {
+                    self.resolve_ask(statement)
+                }
+                Type::PWD => {
+                    self.resolve_password(statement)
+                }
                 Type::WHEN => {
                     self.resolve_when(statement)
                 }
@@ -100,6 +107,23 @@ impl Evaluator {
         }
     }
 
+    fn resolve_ask(&mut self, statement: Statement) {
+        let input = Input::with_theme(&ColorfulTheme::default())
+            .with_prompt(statement.arguments[0].literal.clone())
+            .interact_text()
+            .unwrap();
+        self.recipe.variables.insert(statement.arguments[1].literal.clone(), input);
+    }
+
+    fn resolve_password(&mut self, statement: Statement) {
+        let password = Password::with_theme(&ColorfulTheme::default())
+            .with_prompt(statement.arguments[0].literal.clone())
+            // .with_confirmation("Repeat password", "Error: the passwords don't match.")
+            .interact()
+            .unwrap();
+        self.recipe.variables.insert(statement.arguments[1].literal.clone(), password);
+    }
+
     fn resolve_snd(&self, statement: Statement) {
         let s = self.replace_variable(statement.arguments[0].literal.clone());
         let d = self.replace_variable(statement.arguments[1].literal.clone());
@@ -124,7 +148,7 @@ impl Evaluator {
         let v1 = &statement.arguments[0];
         let op = &statement.arguments[1];
         let v2 = &statement.arguments[2];
-        let mut run_label = false;
+        let mut run_label;
         match v1.literal.as_str() {
             EXIT_CODE => {
                 run_label = self.ssh_stdio.exit_code.to_string() == v2.literal
@@ -135,22 +159,28 @@ impl Evaluator {
             STDERR => {
                 run_label = self.ssh_stdio.stderr.contains(v2.literal.as_str())
             }
-            _ => {}
+            _ => {
+                run_label = self.recipe.variables.get(v1.literal.as_str()).unwrap().contains(v2.literal.as_str())
+            }
         }
         if op.literal.as_str() != EQEQ {
             run_label = !run_label;
         }
         if run_label {
-            self.resolve_statement(self.recipe.labels.get(statement.arguments[4].literal.as_str()).unwrap().to_vec())
+            self.resolve_statement(self.recipe.labels.get(statement.arguments[3].literal.as_str()).unwrap().to_vec())
         }
     }
 
     fn resolve_call(&mut self, statement: Statement) {
-        self.resolve_statement(self.recipe.labels.get(statement.arguments[0].literal.as_str()).unwrap().to_vec())
+        let mut label = statement.arguments[0].literal.clone();
+        if label.starts_with("{{") && label.ends_with("}}") {
+            label = self.replace_variable(label)
+        }
+        self.resolve_statement(self.recipe.labels.get(label.as_str()).unwrap().to_vec())
     }
 
     fn resolve_print(&self, statement: Statement) {
-        println!("Reploy > {}", self.replace_variable(statement.arguments[0].literal.clone()))
+        println!("{} > {}", self.recipe.variables.get(HOST_KEY).unwrap(), self.replace_variable(statement.arguments[0].literal.clone()))
     }
 
     fn replace_variable(&self, mut s: String) -> String {
@@ -183,6 +213,7 @@ impl Evaluator {
             host = v[0];
             port = v[1];
         }
+        self.recipe.variables.insert(HOST_KEY.to_string(), host.to_string());
         if self.is_verbose {
             println!("user:{}, host:{}, port:{}", user, host, port);
             println!("identity: {:?}", self.identity);

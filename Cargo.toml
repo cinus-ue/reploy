@@ -5,7 +5,8 @@ keywords = ["deploy", "ssh"]
 authors = ["Carey Wong <cw.cinus@gmail.com>"]
 
 [dependencies]
-clap = "2.33.3"
-dirs = "1.0"
-ssh2 = "0.8"
-regex = "1"
+clap = "4.0.2"
+dirs = "4.0.0"
+ssh2 = "0.9.3"
+regex = "1.6.0"
+dialoguer = "0.10.2"
