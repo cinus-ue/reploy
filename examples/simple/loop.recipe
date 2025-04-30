@@ -1,0 +1,9 @@
+# Simple for loop test
+For i 1 5 {
+    Print "Iteration {{i}}"
+}
+
+# For loop with step
+For j 10 0 2 {
+    Print "Countdown {{j}}"
+}

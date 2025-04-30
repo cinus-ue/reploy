@@ -26,6 +26,7 @@ pub enum Type {
     STRING,
     TARGET,
     WAIT,
+    FOR,
     UNKNOWN,
 }
 
@@ -48,6 +49,7 @@ pub fn lookup_identifier(identifier: String) -> Type {
         "Print" => Type::PRINT,
         "Target" => Type::TARGET,
         "Wait" => Type::WAIT,
+        "For" => Type::FOR,
         _ => Type::UNKNOWN,
     };
 }

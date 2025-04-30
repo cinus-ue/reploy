@@ -151,6 +151,20 @@ impl Lexer {
             self.line_num += 1;
         }
     }
+
+    pub fn peek_token(&mut self) -> Token {
+        let saved_len = self.read_len;
+        let saved_char = self.char;
+        let saved_line_num = self.line_num;
+
+        let token = self.next_token();
+
+        self.read_len = saved_len;
+        self.char = saved_char;
+        self.line_num = saved_line_num;
+
+        token
+    }
 }
 
 

@@ -52,39 +52,50 @@ impl Evaluator {
             if self.is_end {
                 break;
             }
-            let line_num = statement.token.line_num;
-            if self.is_verbose {
-                println!("Line {}: executing statement: {:?}", line_num, statement)
+            
+            match statement {
+                Statement::Loop { variable, start, end, step, body } => {
+                    if self.is_verbose {
+                        println!("Executing LOOP statement");
+                    }
+                    self.resolve_loop(variable, start, end, step, body)?;
+                }
+                Statement::Simple { token, arguments } => {
+                    let line_num = token.line_num;
+                    if self.is_verbose {
+                        println!("Line {}: executing statement: {:?}", line_num, token.token_type);
+                    }
+                    let result = match token.token_type {
+                        Type::TARGET => self.resolve_target(arguments),
+                        Type::PRINT => self.resolve_print(arguments),
+                        Type::RUN => self.resolve_run(arguments),
+                        Type::LET => self.resolve_let(arguments),
+                        Type::ASK => self.resolve_ask(arguments),
+                        Type::PWD => self.resolve_password(arguments),
+                        Type::WHEN => self.resolve_when(arguments),
+                        Type::SND => self.resolve_snd(arguments),
+                        Type::RCV => self.resolve_rcv(arguments),
+                        Type::CALL => self.resolve_call(arguments),
+                        Type::WAIT => self.resolve_wait(arguments),
+                        Type::END => {
+                            self.is_end = true;
+                            Ok(())
+                        }
+                        _ => {
+                            eprintln!("Line {}: unhandled statement type: {:?}", line_num, token.token_type);
+                            Ok(())
+                        }
+                    };
+                    result.map_err(|e| ReployError::Runtime(format!("Line {}: {}", line_num, e)))?
+                }
             }
-            let result = match statement.token.token_type {
-                Type::TARGET => self.resolve_target(statement),
-                Type::PRINT => self.resolve_print(statement),
-                Type::RUN => self.resolve_run(statement),
-                Type::LET => self.resolve_let(statement),
-                Type::ASK => self.resolve_ask(statement),
-                Type::PWD => self.resolve_password(statement),
-                Type::WHEN => self.resolve_when(statement),
-                Type::SND => self.resolve_snd(statement),
-                Type::RCV => self.resolve_rcv(statement),
-                Type::CALL => self.resolve_call(statement),
-                Type::WAIT => self.resolve_wait(statement),
-                Type::END => {
-                    self.is_end = true;
-                    Ok(())
-                }
-                _ => {
-                    eprintln!("Line {}: unhandled statement: {:?}", line_num, statement);
-                    Ok(())
-                }
-            };
-            result.map_err(|e| ReployError::Runtime(format!("Line {}: {}", line_num, e)))?
         }
         Ok(())
     }
 
-    fn resolve_run(&mut self, statement: Statement) -> Result<(), ReployError> {
+    fn resolve_run(&mut self, arguments: Vec<Token>) -> Result<(), ReployError> {
         let mut channel = self.ssh_session.channel_session()?;
-        let cmd = self.replace_variable(statement.arguments[0].literal.clone())?;
+        let cmd = self.replace_variable(arguments[0].literal.clone())?;
         if self.is_verbose {
             println!("run command: {}", cmd);
         }
@@ -98,33 +109,33 @@ impl Evaluator {
         Ok(())
     }
 
-    fn resolve_let(&mut self, statement: Statement) -> Result<(), ReployError> {
-        match statement.arguments[2].literal.as_str() {
+    fn resolve_let(&mut self, arguments: Vec<Token>) -> Result<(), ReployError> {
+        match arguments[2].literal.as_str() {
             STDOUT => {
                 self.recipe.variables.insert(
-                    statement.arguments[0].literal.clone(),
+                    arguments[0].literal.clone(),
                     self.ssh_stdio.stdout.clone(),
                 );
             }
             STDERR => {
                 self.recipe.variables.insert(
-                    statement.arguments[0].literal.clone(),
+                    arguments[0].literal.clone(),
                     self.ssh_stdio.stderr.clone(),
                 );
             }
             _ => {
                 return Err(ReployError::Runtime(format!(
                     "Invalid LET operation: {}",
-                    statement.arguments[2].literal
+                    arguments[2].literal
                 )));
             }
         }
         Ok(())
     }
 
-    fn resolve_ask(&mut self, statement: Statement) -> Result<(), ReployError> {
+    fn resolve_ask(&mut self, arguments: Vec<Token>) -> Result<(), ReployError> {
         let input = Input::with_theme(&ColorfulTheme::default())
-            .with_prompt(statement.arguments[0].literal.clone())
+            .with_prompt(arguments[0].literal.clone())
             .interact_text()
             .map_err(|e| {
                 ReployError::Io(io::Error::new(
@@ -134,13 +145,13 @@ impl Evaluator {
             })?;
         self.recipe
             .variables
-            .insert(statement.arguments[1].literal.clone(), input);
+            .insert(arguments[1].literal.clone(), input);
         Ok(())
     }
 
-    fn resolve_password(&mut self, statement: Statement) -> Result<(), ReployError> {
+    fn resolve_password(&mut self, arguments: Vec<Token>) -> Result<(), ReployError> {
         let password = Password::with_theme(&ColorfulTheme::default())
-            .with_prompt(statement.arguments[0].literal.clone())
+            .with_prompt(arguments[0].literal.clone())
             // .with_confirmation("Repeat password", "Error: the passwords don't match.")
             .interact()
             .map_err(|e| {
@@ -151,13 +162,13 @@ impl Evaluator {
             })?;
         self.recipe
             .variables
-            .insert(statement.arguments[1].literal.clone(), password);
+            .insert(arguments[1].literal.clone(), password);
         Ok(())
     }
 
-    fn resolve_snd(&self, statement: Statement) -> Result<(), ReployError> {
-        let source = self.replace_variable(statement.arguments[0].literal.clone())?;
-        let dest = self.replace_variable(statement.arguments[1].literal.clone())?;
+    fn resolve_snd(&self, arguments: Vec<Token>) -> Result<(), ReployError> {
+        let source = self.replace_variable(arguments[0].literal.clone())?;
+        let dest = self.replace_variable(arguments[1].literal.clone())?;
 
         if self.is_verbose {
             println!("[SFTP] Uploading: '{}' -> '{}'", source, dest);
@@ -182,9 +193,9 @@ impl Evaluator {
         })
     }
 
-    fn resolve_rcv(&self, statement: Statement) -> Result<(), ReployError> {
-        let source = self.replace_variable(statement.arguments[0].literal.clone())?;
-        let dest = self.replace_variable(statement.arguments[1].literal.clone())?;
+    fn resolve_rcv(&self, arguments: Vec<Token>) -> Result<(), ReployError> {
+        let source = self.replace_variable(arguments[0].literal.clone())?;
+        let dest = self.replace_variable(arguments[1].literal.clone())?;
 
         if self.is_verbose {
             println!("[SFTP] Downloading: '{}' -> '{}'", source, dest);
@@ -209,10 +220,10 @@ impl Evaluator {
         })
     }
 
-    fn resolve_when(&mut self, statement: Statement) -> Result<(), ReployError> {
-        let v1 = &statement.arguments[0];
-        let op = &statement.arguments[1];
-        let v2 = &statement.arguments[2];
+    fn resolve_when(&mut self, arguments: Vec<Token>) -> Result<(), ReployError> {
+        let v1 = &arguments[0];
+        let op = &arguments[1];
+        let v2 = &arguments[2];
         let mut run_label;
         match v1.literal.as_str() {
             EXIT_CODE => run_label = self.ssh_stdio.exit_code.to_string() == v2.literal,
@@ -233,14 +244,14 @@ impl Evaluator {
             run_label = !run_label;
         }
         if run_label {
-            let label_statements = self
-                .recipe
-                .labels
-                .get(statement.arguments[3].literal.as_str())
+        let label_statements = self
+            .recipe
+            .labels
+            .get(arguments[3].literal.as_str())
                 .ok_or_else(|| {
                     ReployError::Runtime(format!(
                         "Label {} not found",
-                        statement.arguments[3].literal
+                        arguments[3].literal
                     ))
                 })?;
             self.resolve_statement(label_statements.to_vec())?;
@@ -248,8 +259,8 @@ impl Evaluator {
         Ok(())
     }
 
-    fn resolve_call(&mut self, statement: Statement) -> Result<(), ReployError> {
-        let mut label = statement.arguments[0].literal.clone();
+    fn resolve_call(&mut self, arguments: Vec<Token>) -> Result<(), ReployError> {
+        let mut label = arguments[0].literal.clone();
         if label.starts_with("{{") && label.ends_with("}}") {
             label = self.replace_variable(label)?
         }
@@ -261,13 +272,13 @@ impl Evaluator {
         self.resolve_statement(label_statements.to_vec())
     }
 
-    fn resolve_print(&self, statement: Statement) -> Result<(), ReployError> {
+    fn resolve_print(&self, arguments: Vec<Token>) -> Result<(), ReployError> {
         let host = self
             .recipe
             .variables
             .get(HOST_KEY)
             .ok_or_else(|| ReployError::Runtime("HOST_KEY not found".to_string()))?;
-        let message = self.replace_variable(statement.arguments[0].literal.clone())?;
+        let message = self.replace_variable(arguments[0].literal.clone())?;
         println!("{} > {}", host, message);
         Ok(())
     }
@@ -289,10 +300,62 @@ impl Evaluator {
         Ok(s)
     }
 
-    fn resolve_wait(&mut self, statement: Statement) -> Result<(), ReployError> {
-        let mode = self.replace_variable(statement.arguments[0].literal.clone())?;
-        let target = self.replace_variable(statement.arguments[1].literal.clone())?;
-        let timeout = statement.arguments[2].literal.parse::<u64>().unwrap_or(30);
+    fn resolve_loop(
+        &mut self,
+        variable: Token,
+        start: Token,
+        end: Token,
+        step: Option<Token>,
+        body: Vec<Statement>,
+    ) -> Result<(), ReployError> {
+        // Parse start value
+        let start_val = start.literal.parse::<i32>().map_err(|_| 
+            ReployError::Runtime(format!("Invalid start value: {}", start.literal))
+        )?;
+        
+        // Parse end value
+        let end_val = end.literal.parse::<i32>().map_err(|_| 
+            ReployError::Runtime(format!("Invalid end value: {}", end.literal))
+        )?;
+        
+        // Parse step value (default to 1 if not provided)
+        let step_val = match step {
+            Some(t) => t.literal.parse::<i32>().map_err(|_| 
+                ReployError::Runtime(format!("Invalid step value: {}", t.literal))
+            )?,
+            None => 1,
+        };
+
+        // Save original variable value if it exists
+        let original_value = self.recipe.variables.get(&variable.literal).cloned();
+
+        // Execute loop
+        let mut current = start_val;
+        while (step_val > 0 && current <= end_val) || (step_val < 0 && current >= end_val) {
+            // Set loop variable
+            self.recipe.variables.insert(variable.literal.clone(), current.to_string());
+            
+            // Execute loop body
+            self.resolve_statement(body.clone())?;
+            
+            // Update loop variable
+            current += step_val;
+        }
+
+        // Restore original variable value if it existed
+        if let Some(val) = original_value {
+            self.recipe.variables.insert(variable.literal.clone(), val);
+        } else {
+            self.recipe.variables.remove(&variable.literal);
+        }
+
+        Ok(())
+    }
+
+    fn resolve_wait(&mut self, arguments: Vec<Token>) -> Result<(), ReployError> {
+        let mode = self.replace_variable(arguments[0].literal.clone())?;
+        let target = self.replace_variable(arguments[1].literal.clone())?;
+        let timeout = arguments[2].literal.parse::<u64>().unwrap_or(30);
         
         let start = std::time::Instant::now();
         
@@ -325,9 +388,9 @@ impl Evaluator {
         }
     }
 
-    fn resolve_target(&mut self, statement: Statement) -> Result<(), ReployError> {
-        let target = &statement.arguments[0].literal;
-
+    fn resolve_target(&mut self, arguments: Vec<Token>) -> Result<(), ReployError> {
+        
+        let target = &arguments[0].literal;
         let mut user = "root";
         let mut port = "22";
         let mut host;

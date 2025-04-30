@@ -32,7 +32,7 @@ impl Parser {
                     }
                     let mut arguments: Vec<Token> = Vec::new();
                     arguments.push(next_token);
-                    recipe.task.push(Statement { token, arguments });
+                    recipe.task.push(Statement::Simple { token, arguments });
                 }
                 Type::SET => {
                     let k = self.lexer.next_token();
@@ -69,20 +69,69 @@ impl Parser {
         let mut statements: Vec<Statement> = Vec::new();
         loop {
             let token = self.lexer.next_token();
-            let mut arguments: Vec<Token> = Vec::new();
-            let mut len = 0;
             match token.token_type {
+                Type::FOR => {
+                    statements.push(self.parse_for_loop()?);
+                }
                 Type::RUN | Type::PRINT | Type::CALL => {
-                    len = 1;
+                    let mut arguments: Vec<Token> = Vec::new();
+                    let mut len = 1;
+                    while len > 0 {
+                        let arg = self.lexer.next_token();
+                        if arg.token_type == Type::EOF {
+                            return Err(ReployError::InvalidRecipe(
+                                format!("Line {}: Incomplete statement at token: {}", token.line_num, token.literal)
+                            ));
+                        }
+                        arguments.push(arg);
+                        len -= 1;
+                    }
+                    statements.push(Statement::Simple { token, arguments });
                 }
                 Type::SND | Type::RCV | Type::ASK | Type::PWD => {
-                    len = 2;
+                    let mut arguments: Vec<Token> = Vec::new();
+                    let mut len = 2;
+                    while len > 0 {
+                        let arg = self.lexer.next_token();
+                        if arg.token_type == Type::EOF {
+                            return Err(ReployError::InvalidRecipe(
+                                format!("Line {}: Incomplete statement at token: {}", token.line_num, token.literal)
+                            ));
+                        }
+                        arguments.push(arg);
+                        len -= 1;
+                    }
+                    statements.push(Statement::Simple { token, arguments });
                 }
                 Type::LET | Type::WAIT => {
-                    len = 3;
+                    let mut arguments: Vec<Token> = Vec::new();
+                    let mut len = 3;
+                    while len > 0 {
+                        let arg = self.lexer.next_token();
+                        if arg.token_type == Type::EOF {
+                            return Err(ReployError::InvalidRecipe(
+                                format!("Line {}: Incomplete statement at token: {}", token.line_num, token.literal)
+                            ));
+                        }
+                        arguments.push(arg);
+                        len -= 1;
+                    }
+                    statements.push(Statement::Simple { token, arguments });
                 }
                 Type::WHEN => {
-                    len = 4;
+                    let mut arguments: Vec<Token> = Vec::new();
+                    let mut len = 4;
+                    while len > 0 {
+                        let arg = self.lexer.next_token();
+                        if arg.token_type == Type::EOF {
+                            return Err(ReployError::InvalidRecipe(
+                                format!("Line {}: Incomplete statement at token: {}", token.line_num, token.literal)
+                            ));
+                        }
+                        arguments.push(arg);
+                        len -= 1;
+                    }
+                    statements.push(Statement::Simple { token, arguments });
                 }
                 Type::LBRACE => {
                     continue;
@@ -92,19 +141,60 @@ impl Parser {
                 }
                 _ => {}
             }
-            while len > 0 {
-                let arg = self.lexer.next_token();
-                if arg.token_type == Type::EOF {
-                    return Err(ReployError::InvalidRecipe(
-                        format!("Line {}: Incomplete statement at token: {}", token.line_num, token.literal)
-                    ));
-                }
-                arguments.push(arg);
-                len -= 1;
-            }
-            statements.push(Statement { token, arguments });
         }
         Ok(statements)
+    }
+
+    fn parse_for_loop(&mut self) -> Result<Statement, ReployError> {
+        // Read loop variable
+        let variable = self.lexer.next_token();
+        if variable.token_type == Type::EOF {
+            return Err(ReployError::InvalidRecipe(
+                format!("Line {}: Missing loop variable after FOR", variable.line_num)
+            ));
+        }
+
+        // Read start value
+        let start = self.lexer.next_token();
+        if start.token_type == Type::EOF {
+            return Err(ReployError::InvalidRecipe(
+                format!("Line {}: Missing start value in FOR loop", start.line_num)
+            ));
+        }
+
+        // Read end value
+        let end = self.lexer.next_token();
+        if end.token_type == Type::EOF {
+            return Err(ReployError::InvalidRecipe(
+                format!("Line {}: Missing end value in FOR loop", end.line_num)
+            ));
+        }
+
+        // Check for optional step
+        let next = self.lexer.peek_token();
+        let step = if next.token_type != Type::LBRACE {
+            Some(self.lexer.next_token())
+        } else {
+            None
+        };
+
+        // Parse loop body
+        let lbrace = self.lexer.next_token();
+        if lbrace.token_type != Type::LBRACE {
+            return Err(ReployError::InvalidRecipe(
+                format!("Line {}: Expected '{{' after FOR loop parameters", lbrace.line_num)
+            ));
+        }
+
+        let body = self.parse_statement()?;
+
+        Ok(Statement::Loop {
+            variable,
+            start,
+            end,
+            step,
+            body,
+        })
     }
 }
 

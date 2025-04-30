@@ -24,9 +24,18 @@ pub struct Recipe {
 }
 
 #[derive(Clone, Debug)]
-pub struct Statement {
-    pub token: Token,
-    pub arguments: Vec<Token>,
+pub enum Statement {
+    Simple {
+        token: Token,
+        arguments: Vec<Token>,
+    },
+    Loop {
+        variable: Token,
+        start: Token,
+        end: Token,
+        step: Option<Token>,
+        body: Vec<Statement>,
+    },
 }
 
 #[derive(Debug)]
