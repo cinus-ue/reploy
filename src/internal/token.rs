@@ -5,7 +5,7 @@ pub struct Token {
     pub literal: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Type {
     EOF,
     SET,

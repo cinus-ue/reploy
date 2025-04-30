@@ -5,6 +5,7 @@ use internal::token::Token;
 pub mod evaluator;
 pub mod parser;
 pub mod lexer;
+pub mod error;
 mod util;
 mod token;
 

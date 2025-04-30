@@ -1,12 +1,15 @@
+use std::io;
 use std::net::TcpStream;
 use std::path::PathBuf;
 
+use dialoguer::{theme::ColorfulTheme, Input, Password};
 use regex::Regex;
 use ssh2::Session;
-use dialoguer::{theme::ColorfulTheme, Input, Password};
 
-use internal::*;
 use internal::token::Type;
+use internal::*;
+
+use internal::error::ReployError;
 
 pub struct Evaluator {
     recipe: Recipe,
@@ -25,7 +28,11 @@ impl Evaluator {
             is_verbose: verbose,
             identity: util::ssh_key(),
             ssh_session: Session::new().unwrap(),
-            ssh_stdio: Stdio { exit_code: 0, stdout: String::new(), stderr: String::new() },
+            ssh_stdio: Stdio {
+                exit_code: 0,
+                stdout: String::new(),
+                stderr: String::new(),
+            },
         }
     }
 
@@ -33,168 +40,255 @@ impl Evaluator {
         self.identity = PathBuf::from(identity);
     }
 
-    pub fn run(&mut self) {
-        self.resolve_statement(self.recipe.task.to_vec());
-        assert!(self.ssh_session.disconnect(None, "connection closing", None).is_ok());
+    pub fn run(&mut self) -> Result<(), ReployError> {
+        self.resolve_statement(self.recipe.task.to_vec())?;
+        self.ssh_session
+            .disconnect(None, "connection closing", None)?;
+        Ok(())
     }
 
-    fn resolve_statement(&mut self, statements: Vec<Statement>) {
+    fn resolve_statement(&mut self, statements: Vec<Statement>) -> Result<(), ReployError> {
         for statement in statements {
             if self.is_end {
                 break;
             }
+            let line_num = statement.token.line_num;
             if self.is_verbose {
-                println!("resolve statement: {:?}", statement)
+                println!("Line {}: executing statement: {:?}", line_num, statement)
             }
-            match statement.token.token_type {
-                Type::TARGET => {
-                    self.resolve_target(statement)
-                }
-                Type::PRINT => {
-                    self.resolve_print(statement)
-                }
-                Type::RUN => {
-                    self.resolve_run(statement)
-                }
-                Type::LET => {
-                    self.resolve_let(statement)
-                }
-                Type::ASK => {
-                    self.resolve_ask(statement)
-                }
-                Type::PWD => {
-                    self.resolve_password(statement)
-                }
-                Type::WHEN => {
-                    self.resolve_when(statement)
-                }
-                Type::SND => {
-                    self.resolve_snd(statement)
-                }
-                Type::RCV => {
-                    self.resolve_rcv(statement)
-                }
-                Type::CALL => {
-                    self.resolve_call(statement)
-                }
+            let result = match statement.token.token_type {
+                Type::TARGET => self.resolve_target(statement),
+                Type::PRINT => self.resolve_print(statement),
+                Type::RUN => self.resolve_run(statement),
+                Type::LET => self.resolve_let(statement),
+                Type::ASK => self.resolve_ask(statement),
+                Type::PWD => self.resolve_password(statement),
+                Type::WHEN => self.resolve_when(statement),
+                Type::SND => self.resolve_snd(statement),
+                Type::RCV => self.resolve_rcv(statement),
+                Type::CALL => self.resolve_call(statement),
                 Type::END => {
                     self.is_end = true;
+                    Ok(())
                 }
-                _ => eprintln!("unhandled statement: {:?}", statement)
-            }
+                _ => {
+                    eprintln!("Line {}: unhandled statement: {:?}", line_num, statement);
+                    Ok(())
+                }
+            };
+            result.map_err(|e| ReployError::Runtime(format!("Line {}: {}", line_num, e)))?
         }
+        Ok(())
     }
 
-    fn resolve_run(&mut self, statement: Statement) {
-        let mut channel = self.ssh_session.channel_session().unwrap();
-        let cmd = self.replace_variable(statement.arguments[0].literal.clone());
+    fn resolve_run(&mut self, statement: Statement) -> Result<(), ReployError> {
+        let mut channel = self.ssh_session.channel_session()?;
+        let cmd = self.replace_variable(statement.arguments[0].literal.clone())?;
         if self.is_verbose {
             println!("run command: {}", cmd);
         }
-        channel.exec(cmd.as_str()).expect("failed to run command");
+        channel.exec(cmd.as_str()).map_err(|e| {
+            ReployError::CommandFailed(
+                -1,
+                format!("Failed to execute command: {}，Error: {}", cmd, e),
+            )
+        })?;
         self.ssh_stdio = util::consume_stdio(&mut channel);
+        Ok(())
     }
 
-    fn resolve_let(&mut self, statement: Statement) {
+    fn resolve_let(&mut self, statement: Statement) -> Result<(), ReployError> {
         match statement.arguments[2].literal.as_str() {
             STDOUT => {
-                self.recipe.variables.insert(statement.arguments[0].literal.clone(), self.ssh_stdio.stdout.clone());
+                self.recipe.variables.insert(
+                    statement.arguments[0].literal.clone(),
+                    self.ssh_stdio.stdout.clone(),
+                );
             }
             STDERR => {
-                self.recipe.variables.insert(statement.arguments[0].literal.clone(), self.ssh_stdio.stderr.clone());
+                self.recipe.variables.insert(
+                    statement.arguments[0].literal.clone(),
+                    self.ssh_stdio.stderr.clone(),
+                );
             }
-            _ => {}
+            _ => {
+                return Err(ReployError::Runtime(format!(
+                    "Invalid LET operation: {}",
+                    statement.arguments[2].literal
+                )));
+            }
         }
+        Ok(())
     }
 
-    fn resolve_ask(&mut self, statement: Statement) {
+    fn resolve_ask(&mut self, statement: Statement) -> Result<(), ReployError> {
         let input = Input::with_theme(&ColorfulTheme::default())
             .with_prompt(statement.arguments[0].literal.clone())
             .interact_text()
-            .unwrap();
-        self.recipe.variables.insert(statement.arguments[1].literal.clone(), input);
+            .map_err(|e| {
+                ReployError::Io(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("Failed to read input: {}", e),
+                ))
+            })?;
+        self.recipe
+            .variables
+            .insert(statement.arguments[1].literal.clone(), input);
+        Ok(())
     }
 
-    fn resolve_password(&mut self, statement: Statement) {
+    fn resolve_password(&mut self, statement: Statement) -> Result<(), ReployError> {
         let password = Password::with_theme(&ColorfulTheme::default())
             .with_prompt(statement.arguments[0].literal.clone())
             // .with_confirmation("Repeat password", "Error: the passwords don't match.")
             .interact()
-            .unwrap();
-        self.recipe.variables.insert(statement.arguments[1].literal.clone(), password);
+            .map_err(|e| {
+                ReployError::Io(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("Failed to read password: {}", e),
+                ))
+            })?;
+        self.recipe
+            .variables
+            .insert(statement.arguments[1].literal.clone(), password);
+        Ok(())
     }
 
-    fn resolve_snd(&self, statement: Statement) {
-        let s = self.replace_variable(statement.arguments[0].literal.clone());
-        let d = self.replace_variable(statement.arguments[1].literal.clone());
+    fn resolve_snd(&self, statement: Statement) -> Result<(), ReployError> {
+        let source = self.replace_variable(statement.arguments[0].literal.clone())?;
+        let dest = self.replace_variable(statement.arguments[1].literal.clone())?;
+
         if self.is_verbose {
-            println!("upload file:{}", s);
+            println!("[SFTP] Uploading: '{}' -> '{}'", source, dest);
         }
-        let sftp = self.ssh_session.sftp().expect("SFTP error");
-        util::upload_file(&s, &d, &sftp);
+
+        let sftp = self.ssh_session.sftp().map_err(|e| {
+            ReployError::Ssh(e).with_context(format!(
+                "SFTP session initialization failed for upload operation"
+            ))
+        })?;
+
+        util::upload_file(&source, &dest, &sftp).map_err(|e| match e {
+            ReployError::Io(io_err) => ReployError::Io(io_err).with_context(format!(
+                "File upload failed | Source: '{}' | Destination: '{}'",
+                source, dest
+            )),
+            ReployError::Ssh(ssh_err) => ReployError::Ssh(ssh_err).with_context(format!(
+                "SFTP upload failed | Source: '{}' | Destination: '{}'",
+                source, dest
+            )),
+            other => other,
+        })
     }
 
-    fn resolve_rcv(&self, statement: Statement) {
-        let s = self.replace_variable(statement.arguments[0].literal.clone());
-        let d = self.replace_variable(statement.arguments[1].literal.clone());
+    fn resolve_rcv(&self, statement: Statement) -> Result<(), ReployError> {
+        let source = self.replace_variable(statement.arguments[0].literal.clone())?;
+        let dest = self.replace_variable(statement.arguments[1].literal.clone())?;
+
         if self.is_verbose {
-            println!("download file:{}", s);
+            println!("[SFTP] Downloading: '{}' -> '{}'", source, dest);
         }
-        let sftp = self.ssh_session.sftp().expect("SFTP error");
-        util::download_file(&s, &d, &sftp);
+
+        let sftp = self.ssh_session.sftp().map_err(|e| {
+            ReployError::Ssh(e).with_context(format!(
+                "SFTP session initialization failed for download operation"
+            ))
+        })?;
+
+        util::download_file(&source, &dest, &sftp).map_err(|e| match e {
+            ReployError::Io(io_err) => ReployError::Io(io_err).with_context(format!(
+                "File download failed | Source: '{}' | Destination: '{}'",
+                source, dest
+            )),
+            ReployError::Ssh(ssh_err) => ReployError::Ssh(ssh_err).with_context(format!(
+                "SFTP download failed | Source: '{}' | Destination: '{}'",
+                source, dest
+            )),
+            other => other,
+        })
     }
 
-    fn resolve_when(&mut self, statement: Statement) {
+    fn resolve_when(&mut self, statement: Statement) -> Result<(), ReployError> {
         let v1 = &statement.arguments[0];
         let op = &statement.arguments[1];
         let v2 = &statement.arguments[2];
         let mut run_label;
         match v1.literal.as_str() {
-            EXIT_CODE => {
-                run_label = self.ssh_stdio.exit_code.to_string() == v2.literal
-            }
-            STDOUT => {
-                run_label = self.ssh_stdio.stdout.contains(v2.literal.as_str())
-            }
-            STDERR => {
-                run_label = self.ssh_stdio.stderr.contains(v2.literal.as_str())
-            }
+            EXIT_CODE => run_label = self.ssh_stdio.exit_code.to_string() == v2.literal,
+            STDOUT => run_label = self.ssh_stdio.stdout.contains(v2.literal.as_str()),
+            STDERR => run_label = self.ssh_stdio.stderr.contains(v2.literal.as_str()),
             _ => {
-                run_label = self.recipe.variables.get(v1.literal.as_str()).unwrap().contains(v2.literal.as_str())
+                let var_value =
+                    self.recipe
+                        .variables
+                        .get(v1.literal.as_str())
+                        .ok_or_else(|| {
+                            ReployError::Runtime(format!("Variable {} not found", v1.literal))
+                        })?;
+                run_label = var_value.contains(v2.literal.as_str())
             }
         }
         if op.literal.as_str() != EQEQ {
             run_label = !run_label;
         }
         if run_label {
-            self.resolve_statement(self.recipe.labels.get(statement.arguments[3].literal.as_str()).unwrap().to_vec())
+            let label_statements = self
+                .recipe
+                .labels
+                .get(statement.arguments[3].literal.as_str())
+                .ok_or_else(|| {
+                    ReployError::Runtime(format!(
+                        "Label {} not found",
+                        statement.arguments[3].literal
+                    ))
+                })?;
+            self.resolve_statement(label_statements.to_vec())?;
         }
+        Ok(())
     }
 
-    fn resolve_call(&mut self, statement: Statement) {
+    fn resolve_call(&mut self, statement: Statement) -> Result<(), ReployError> {
         let mut label = statement.arguments[0].literal.clone();
         if label.starts_with("{{") && label.ends_with("}}") {
-            label = self.replace_variable(label)
+            label = self.replace_variable(label)?
         }
-        self.resolve_statement(self.recipe.labels.get(label.as_str()).unwrap().to_vec())
+        let label_statements = self
+            .recipe
+            .labels
+            .get(label.as_str())
+            .ok_or_else(|| ReployError::Runtime(format!("Label {} not found", label)))?;
+        self.resolve_statement(label_statements.to_vec())
     }
 
-    fn resolve_print(&self, statement: Statement) {
-        println!("{} > {}", self.recipe.variables.get(HOST_KEY).unwrap(), self.replace_variable(statement.arguments[0].literal.clone()))
+    fn resolve_print(&self, statement: Statement) -> Result<(), ReployError> {
+        let host = self
+            .recipe
+            .variables
+            .get(HOST_KEY)
+            .ok_or_else(|| ReployError::Runtime("HOST_KEY not found".to_string()))?;
+        let message = self.replace_variable(statement.arguments[0].literal.clone())?;
+        println!("{} > {}", host, message);
+        Ok(())
     }
 
-    fn replace_variable(&self, mut s: String) -> String {
-        for cap in Regex::new(r"\{\{(.*?)}}").unwrap().captures_iter(&s.clone()) {
-            let var = cap.get(0).unwrap().as_str();
+    fn replace_variable(&self, mut s: String) -> Result<String, ReployError> {
+        let re = Regex::new(r"\{\{(.*?)}}")
+            .map_err(|e| ReployError::Runtime(format!("Failed to compile regex: {}", e)))?;
+
+        for cap in re.captures_iter(&s.clone()) {
+            let var = cap
+                .get(0)
+                .ok_or_else(|| ReployError::Runtime("Invalid variable pattern".to_string()))?
+                .as_str();
             let key = var.trim_start_matches("{{").trim_end_matches("}}");
-            if self.recipe.variables.contains_key(key) {
-                s = s.replace(var, self.recipe.variables.get(key).unwrap().as_str());
+            if let Some(value) = self.recipe.variables.get(key) {
+                s = s.replace(var, value.as_str());
             }
         }
-        s
+        Ok(s)
     }
 
-    fn resolve_target(&mut self, statement: Statement) {
+    fn resolve_target(&mut self, statement: Statement) -> Result<(), ReployError> {
         let target = &statement.arguments[0].literal;
 
         let mut user = "root";
@@ -213,20 +307,37 @@ impl Evaluator {
             host = v[0];
             port = v[1];
         }
-        self.recipe.variables.insert(HOST_KEY.to_string(), host.to_string());
+        self.recipe
+            .variables
+            .insert(HOST_KEY.to_string(), host.to_string());
         if self.is_verbose {
             println!("user:{}, host:{}, port:{}", user, host, port);
             println!("identity: {:?}", self.identity);
         }
-        self.ssh_session.set_tcp_stream(TcpStream::connect(format!("{}:{}", host, port)).expect("failed to connect to target"));
-        self.ssh_session.handshake().expect("handshake failed");
+
+        let tcp_stream = TcpStream::connect(format!("{}:{}", host, port)).map_err(|e| {
+            ReployError::ConnectionFailed
+                .with_context(format!("Failed to connect to {}:{}", host, port))
+        })?;
+
+        self.ssh_session.set_tcp_stream(tcp_stream);
+        self.ssh_session.handshake()?;
+
         if self.identity.exists() {
             self.ssh_session
                 .userauth_pubkey_file(user, None, self.identity.as_path(), None)
-                .expect("authentication failed");
+                .map_err(|_| ReployError::AuthFailed)?;
         } else {
-            panic!("file does not exist: {:?}", self.identity)
+            return Err(ReployError::Io(io::Error::new(
+                io::ErrorKind::NotFound,
+                format!("Identity file not found: {:?}", self.identity),
+            )));
         }
-        assert!(self.ssh_session.authenticated());
+
+        if !self.ssh_session.authenticated() {
+            return Err(ReployError::AuthFailed);
+        }
+
+        Ok(())
     }
 }

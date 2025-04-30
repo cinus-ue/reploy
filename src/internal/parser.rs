@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use internal::{Recipe, Statement};
+use internal::error::ReployError;
 use internal::lexer::Lexer;
 use internal::token::{Token, Type};
 
@@ -13,7 +14,7 @@ impl Parser {
         Parser { lexer }
     }
 
-    pub fn parse(&mut self) -> Recipe {
+    pub fn parse(&mut self) -> Result<Recipe, ReployError> {
         let mut recipe = Recipe {
             task: Vec::new(),
             variables: HashMap::new(),
@@ -23,21 +24,37 @@ impl Parser {
             let token = self.lexer.next_token();
             match token.token_type {
                 Type::TARGET => {
+                    let next_token = self.lexer.next_token();
+                    if next_token.token_type == Type::EOF {
+                    return Err(ReployError::InvalidRecipe(
+                        format!("Line {}: Missing target after TARGET", token.line_num)
+                    ));
+                    }
                     let mut arguments: Vec<Token> = Vec::new();
-                    arguments.push(self.lexer.next_token());
+                    arguments.push(next_token);
                     recipe.task.push(Statement { token, arguments });
                 }
                 Type::SET => {
                     let k = self.lexer.next_token();
                     let v = self.lexer.next_token();
+                    if k.token_type == Type::EOF || v.token_type == Type::EOF {
+                    return Err(ReployError::InvalidRecipe(
+                        format!("Line {}: Incomplete SET statement", token.line_num)
+                    ));
+                    }
                     recipe.variables.insert(k.literal, v.literal);
                 }
                 Type::TASK => {
-                    recipe.task.append(&mut self.parse_statement());
+                    recipe.task.append(&mut self.parse_statement()?);
                 }
                 Type::LABEL => {
                     let label = self.lexer.next_token();
-                    recipe.labels.insert(label.literal, self.parse_statement());
+                    if label.token_type == Type::EOF {
+                    return Err(ReployError::InvalidRecipe(
+                        format!("Line {}: Missing label name after LABEL", token.line_num)
+                    ));
+                    }
+                    recipe.labels.insert(label.literal, self.parse_statement()?);
                 }
                 Type::EOF => {
                     break;
@@ -45,10 +62,10 @@ impl Parser {
                 _ => {}
             }
         }
-        recipe
+        Ok(recipe)
     }
 
-    fn parse_statement(&mut self) -> Vec<Statement> {
+    fn parse_statement(&mut self) -> Result<Vec<Statement>, ReployError> {
         let mut statements: Vec<Statement> = Vec::new();
         loop {
             let token = self.lexer.next_token();
@@ -76,12 +93,18 @@ impl Parser {
                 _ => {}
             }
             while len > 0 {
-                arguments.push(self.lexer.next_token());
+                let arg = self.lexer.next_token();
+                if arg.token_type == Type::EOF {
+                    return Err(ReployError::InvalidRecipe(
+                        format!("Line {}: Incomplete statement at token: {}", token.line_num, token.literal)
+                    ));
+                }
+                arguments.push(arg);
                 len -= 1;
             }
             statements.push(Statement { token, arguments });
         }
-        statements
+        Ok(statements)
     }
 }
 
