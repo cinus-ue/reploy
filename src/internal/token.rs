@@ -25,6 +25,7 @@ pub enum Type {
     RBRACE,
     STRING,
     TARGET,
+    WAIT,
     UNKNOWN,
 }
 
@@ -46,6 +47,7 @@ pub fn lookup_identifier(identifier: String) -> Type {
         "Label" => Type::LABEL,
         "Print" => Type::PRINT,
         "Target" => Type::TARGET,
+        "Wait" => Type::WAIT,
         _ => Type::UNKNOWN,
     };
 }

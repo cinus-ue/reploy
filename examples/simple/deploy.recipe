@@ -5,7 +5,7 @@ Task {
     # Ask "Enter Text to Generate SHA256 Hash:" "TEXT"
     # Run "echo -n \"{{TEXT}}\" | sha256sum" Let RESULT = stdout Print "SHA256 checksum:{{RESULT}}"
 
-    Ask "Choose an action[SYSTEM,NETSTAT,SERVICE]:" "ACTION" Call {{ACTION}}
+    Ask "Choose an action[SYSTEM,NETSTAT,SERVICE,WAIT,PASSWORD]:" "ACTION" Call {{ACTION}}
 
 }
 
@@ -26,6 +26,11 @@ Label NETSTAT  {
 
 Label SERVICE {
     Run "service --status-all" Let SERVICES = stdout Print "Running Services:\n {{SERVICES}}"
+}
+
+Label WAIT {
+    Wait "port_open" "8080" "60"  # 等待8080端口开放，超时60秒
+    Wait "file_exists" "/path/file" "30"  # 等待文件存在，超时30秒
 }
 
 Label PASSWORD {

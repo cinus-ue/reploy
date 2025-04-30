@@ -78,7 +78,7 @@ impl Parser {
                 Type::SND | Type::RCV | Type::ASK | Type::PWD => {
                     len = 2;
                 }
-                Type::LET => {
+                Type::LET | Type::WAIT => {
                     len = 3;
                 }
                 Type::WHEN => {

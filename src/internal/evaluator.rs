@@ -67,6 +67,7 @@ impl Evaluator {
                 Type::SND => self.resolve_snd(statement),
                 Type::RCV => self.resolve_rcv(statement),
                 Type::CALL => self.resolve_call(statement),
+                Type::WAIT => self.resolve_wait(statement),
                 Type::END => {
                     self.is_end = true;
                     Ok(())
@@ -90,7 +91,7 @@ impl Evaluator {
         channel.exec(cmd.as_str()).map_err(|e| {
             ReployError::CommandFailed(
                 -1,
-                format!("Failed to execute command: {}，Error: {}", cmd, e),
+                format!("Failed to execute command: {},Error: {}", cmd, e),
             )
         })?;
         self.ssh_stdio = util::consume_stdio(&mut channel);
@@ -288,6 +289,42 @@ impl Evaluator {
         Ok(s)
     }
 
+    fn resolve_wait(&mut self, statement: Statement) -> Result<(), ReployError> {
+        let mode = self.replace_variable(statement.arguments[0].literal.clone())?;
+        let target = self.replace_variable(statement.arguments[1].literal.clone())?;
+        let timeout = statement.arguments[2].literal.parse::<u64>().unwrap_or(30);
+        
+        let start = std::time::Instant::now();
+        
+        match mode.as_str() {
+            "port_open" => {
+                while start.elapsed().as_secs() < timeout {
+                    if TcpStream::connect(format!("127.0.0.1:{}", target)).is_ok() {
+                        return Ok(());
+                    }
+                    std::thread::sleep(std::time::Duration::from_secs(1));
+                }
+                Err(ReployError::Runtime(format!(
+                    "Timeout waiting for port {} to open", target
+                )))
+            }
+            "file_exists" => {
+                while start.elapsed().as_secs() < timeout {
+                    if std::path::Path::new(&target).exists() {
+                        return Ok(());
+                    }
+                    std::thread::sleep(std::time::Duration::from_secs(1));
+                }
+                Err(ReployError::Runtime(format!(
+                    "Timeout waiting for file {} to exist", target
+                )))
+            }
+            _ => Err(ReployError::Runtime(format!(
+                "Invalid wait mode: {}, expected 'port_open' or 'file_exists'", mode
+            ))),
+        }
+    }
+
     fn resolve_target(&mut self, statement: Statement) -> Result<(), ReployError> {
         let target = &statement.arguments[0].literal;
 
@@ -316,8 +353,10 @@ impl Evaluator {
         }
 
         let tcp_stream = TcpStream::connect(format!("{}:{}", host, port)).map_err(|e| {
-            ReployError::ConnectionFailed
-                .with_context(format!("Failed to connect to {}:{}", host, port))
+            ReployError::ConnectionFailed.with_context(format!(
+                "Failed to connect to {}:{},Error: {}",
+                host, port, e
+            ))
         })?;
 
         self.ssh_session.set_tcp_stream(tcp_stream);
