@@ -3,29 +3,29 @@ Target root@105.239.136.127:22
 Task {
 
     # Ask "Enter Text to Generate SHA256 Hash:" "TEXT"
-    # Run "echo -n \"$TEXT\" | sha256sum" Let RESULT = stdout Print "SHA256 checksum:$RESULT"
+    # Run "echo -n \"${TEXT}\" | sha256sum" Let RESULT = stdout Print "SHA256 checksum:${RESULT}"
 
-    Ask "Choose an action[SYSTEM,NETSTAT,SERVICE,WAIT,PASSWORD]:" "ACTION" Call $ACTION
+    Ask "Choose an action[SYSTEM,NETSTAT,SERVICE,WAIT,PASSWORD]:" "ACTION" Call ${ACTION}
 
 }
 
 Label SYSTEM {
-    Run "whoami"    Call CHECK_EXIT_CODE  Let USER = stdout         Print "User:$USER"
-    Run "uname -a"  Call CHECK_EXIT_CODE  Let SYSTEM_INFO = stdout  Print "System Info:\n $SYSTEM_INFO"
+    Run "whoami"    Call CHECK_EXIT_CODE  Let USER = stdout         Print "User:${USER}"
+    Run "uname -a"  Call CHECK_EXIT_CODE  Let SYSTEM_INFO = stdout  Print "System Info:\n ${SYSTEM_INFO}"
 
     Run "cat /proc/stat | awk '/cpu/{printf(\"%.2f%\\n\"), ($2+$4)*100/($2+$4+$5)}' |  awk '{print $0}' | head -1"
-    Call CHECK_EXIT_CODE Let CPU_USAGE = stdout  Print "CPU Usage:$CPU_USAGE"
+    Call CHECK_EXIT_CODE Let CPU_USAGE = stdout  Print "CPU Usage:${CPU_USAGE}"
 
     Run "free | awk '/Mem/{printf(\"%.2f%\"), $3/$2*100}'"
-    Call CHECK_EXIT_CODE Let MEMORY_USAGE = stdout  Print "Memory Usage:$MEMORY_USAGE"
+    Call CHECK_EXIT_CODE Let MEMORY_USAGE = stdout  Print "Memory Usage:${MEMORY_USAGE}"
 }
 
 Label NETSTAT  {
-    Run "netstat -natp" Let NETSTAT = stdout Print "Active Internet Connections and Open Ports:\n$NETSTAT"
+    Run "netstat -natp" Let NETSTAT = stdout Print "Active Internet Connections and Open Ports:\n${NETSTAT}"
 }
 
 Label SERVICE {
-    Run "service --status-all" Let SERVICES = stdout Print "Running Services:\n $SERVICES"
+    Run "service --status-all" Let SERVICES = stdout Print "Running Services:\n ${SERVICES}"
 }
 
 Label WAIT {
@@ -39,15 +39,15 @@ Label PASSWORD {
 
 Label CHECK_EXIT_CODE {
     Let EXIT_CODE = exit_code
-    When {{$EXIT_CODE != 0}} {
+    When {{${EXIT_CODE} != 0}} {
         Call CMD_ERROR
     }
 }
 
 Label CMD_ERROR {
     Print "FAILED TO RUN COMMAND."
-    Let STDERR = stderr Print "STDERR:$STDERR"
-    Let STDOUT = stdout Print "STDOUT:$STDOUT"
+    Let STDERR = stderr Print "STDERR:${STDERR}"
+    Let STDOUT = stdout Print "STDOUT:${STDOUT}"
     End
 }
 

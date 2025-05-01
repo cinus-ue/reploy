@@ -219,7 +219,7 @@ impl Evaluator {
 
     fn resolve_call(&mut self, arguments: Vec<Token>) -> Result<(), ReployError> {
         let mut label = arguments[0].literal.clone();
-        if label.starts_with("$") {
+        if label.starts_with("${") {
             label = self.replace_variable(label)?
         }
         let label_statements = self
@@ -246,7 +246,7 @@ impl Evaluator {
             println!("Replacing variables in: {}", s);
         }
         // First handle inline $variables in strings
-        let var_re = Regex::new(r"\$(\w+)").map_err(|e| {
+        let var_re = Regex::new(r"\$\{(\w+)\}").map_err(|e| {
             ReployError::Runtime(format!("Failed to compile variable regex: {}", e))
         })?;
 

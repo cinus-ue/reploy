@@ -3,28 +3,28 @@ Target local
 Task {
     # Basic FORIN loop with direct list
     Forin item In "apple,banana,orange" {
-        Print "Fruit: $item"
+        Print "Fruit: ${item}"
     }
 
     # FORIN loop with variable reference
     Set fruits "apple,banana,orange"
-    Forin fruit In "$fruits" {
-        Print "Fruit from variable: $fruit"
+    Forin fruit In "${fruits}" {
+        Print "Fruit from variable: ${fruit}"
     }
 
     # Nested FORIN loops
     Set colors "red,green,blue"
-    Forin color In "$colors" {
+    Forin color In "${colors}" {
         Forin fruit In "apple,banana" {
-            Print "$color $fruit"
+            Print "${color} ${fruit}"
         }
     }
 
     # FORIN with other statements
     Set servers "web1,web2,db1"
-    Forin server In "$servers" {
-        Print "Connecting to $server"
-        Run "ping -c 1 $server" 
-        Let STDOUT = stdout Print "Ping:$STDOUT"
+    Forin server In "${servers}" {
+        Print "Connecting to ${server}"
+        Run "ping -c 1 ${server}" 
+        Let STDOUT = stdout Print "Ping:${STDOUT}"
     }
 }
