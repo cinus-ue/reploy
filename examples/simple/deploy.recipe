@@ -38,7 +38,10 @@ Label PASSWORD {
 }
 
 Label CHECK_EXIT_CODE {
-    When exit_code != "0" CMD_ERROR
+    Let EXIT_CODE = exit_code
+    When {{$EXIT_CODE != 0}} {
+        Call CMD_ERROR
+    }
 }
 
 Label CMD_ERROR {
