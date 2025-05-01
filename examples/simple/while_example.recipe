@@ -2,20 +2,20 @@ Target local
 
 Task {
     # Infinite loop with break condition
-    Set counter 0
-    While true {
-        Print "Counter: $counter"
-        Set counter {{$counter + 1}} 
-        When {{$counter == 5}} {
-            End
-        }
-    }
+    #Set counter 0
+    #While true {
+    #    Print "Counter: $counter"
+    #    Set counter {{$counter + 1}} 
+    #    When {{$counter == 5}} {
+    #        Print "Breaking loop"
+    #        End
+    #    }
+    #}
 
     # Conditional loop
     Set should_continue true
     While {{$should_continue}} {
         Print "Conditional loop running"
-        Run "echo This will run once"
         Set should_continue false
     }
 
