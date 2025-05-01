@@ -259,36 +259,6 @@ impl Evaluator {
             }
         }
 
-        // // Then handle expression variables in {{}}
-        // let expr_re = Regex::new(r"\{\{(\$?\w+.*?)}}")
-        //     .map_err(|e| ReployError::Runtime(format!("Failed to compile expression regex: {}", e)))?;
-
-        // for cap in expr_re.captures_iter(&s.clone()) {
-        //     if let Some(expr_match) = cap.get(0) {
-        //         let expr_content = &cap[1];
-        //         let mut processed_expr = String::new();
-
-        //         // Process each token in expression
-        //         for token in expr_content.split_whitespace() {
-        //             let processed_token = if token.starts_with('$') {
-        //                 // Handle $variable in expressions
-        //                 let var_name = &token[1..];
-        //                 self.recipe.variables.get(var_name).map_or(token, |v| v.as_str())
-        //             } else {
-        //                 // Non-variable tokens remain unchanged
-        //                 token
-        //             };
-
-        //             if !processed_expr.is_empty() {
-        //                 processed_expr.push(' ');
-        //             }
-        //             processed_expr.push_str(processed_token);
-        //         }
-
-        //         s = s.replace(expr_match.as_str(), &format!("{{{}}}", processed_expr));
-        //     }
-        // }
-
         Ok(s)
     }
 
