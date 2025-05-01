@@ -4,8 +4,8 @@ use std::io::{BufReader, BufWriter, Read};
 use std::net::TcpStream;
 use std::path::Path;
 
-use internal::error::ReployError;
-use internal::Stdio;
+use super::error::ReployError;
+use super::Stdio;
 
 use super::util;
 

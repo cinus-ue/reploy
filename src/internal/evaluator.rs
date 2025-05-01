@@ -3,10 +3,16 @@ use std::io;
 use dialoguer::{theme::ColorfulTheme, Input, Password};
 use regex::Regex;
 
-use internal::error::ReployError;
-use internal::executor::Executor;
-use internal::token::Type;
-use internal::*;
+use super::error::ReployError;
+use super::executor::Executor;
+use super::token::{Token, Type};
+use super::{util, Recipe, Statement};
+
+const HOST_KEY: &str = "$HOST";
+
+const STDOUT: &str = "stdout";
+const STDERR: &str = "stderr";
+const EXIT_CODE: &str = "exit_code";
 
 pub struct Evaluator {
     recipe: Recipe,

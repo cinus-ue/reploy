@@ -1,6 +1,7 @@
 use std::str::Chars;
 
-use internal::token::{lookup_identifier, Token, Type};
+use super::token;
+use super::token::{Token, Type};
 
 const EOF_CHAR: char = '\0';
 //const CR: char = '\u{000D}';
@@ -58,7 +59,7 @@ impl Lexer {
                     Token {
                         literal: identifier.clone(),
                         line_num: self.line_num,
-                        token_type: lookup_identifier(identifier),
+                        token_type: token::lookup_identifier(identifier),
                     }
                 }
             }
@@ -67,7 +68,7 @@ impl Lexer {
                 Token {
                     literal: identifier.clone(),
                     line_num: self.line_num,
-                    token_type: lookup_identifier(identifier),
+                    token_type: token::lookup_identifier(identifier),
                 }
             }
         };

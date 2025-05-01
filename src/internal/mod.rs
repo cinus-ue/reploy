@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use internal::token::Token;
+use token::Token;
 
 pub mod error;
 pub mod evaluator;
@@ -9,12 +9,6 @@ pub mod lexer;
 pub mod parser;
 mod token;
 mod util;
-
-const HOST_KEY: &str = "$HOST";
-
-const STDOUT: &str = "stdout";
-const STDERR: &str = "stderr";
-const EXIT_CODE: &str = "exit_code";
 
 #[derive(Debug)]
 pub struct Recipe {

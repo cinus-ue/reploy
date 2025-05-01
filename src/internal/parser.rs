@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use internal::error::ReployError;
-use internal::lexer::Lexer;
-use internal::token::{Token, Type};
-use internal::{Recipe, Statement};
+use super::error::ReployError;
+use super::lexer::Lexer;
+use super::token::{Token, Type};
+use super::{Recipe, Statement};
 
 pub struct Parser {
     lexer: Lexer,

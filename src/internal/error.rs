@@ -1,6 +1,6 @@
+use ssh2;
 use std::fmt;
 use std::io;
-use ssh2;
 
 #[derive(Debug)]
 pub enum ReployError {
@@ -35,12 +35,13 @@ impl fmt::Display for ReployError {
             ReployError::Runtime(s) => write!(f, "Runtime error: {}", s),
             ReployError::AuthFailed => write!(f, "Authentication failed"),
             ReployError::ConnectionFailed => write!(f, "Connection failed"),
-            ReployError::CommandFailed(code, msg) => 
-                write!(f, "Command failed with exit code {}: {}", code, msg),
-            ReployError::InvalidRecipe(s) => 
-                write!(f, "Invalid recipe: {}", s),
-            ReployError::WithContext { source, context } => 
-                write!(f, "{}\nContext: {}", source, context),
+            ReployError::CommandFailed(code, msg) => {
+                write!(f, "Command failed with exit code {}: {}", code, msg)
+            }
+            ReployError::InvalidRecipe(s) => write!(f, "Invalid recipe: {}", s),
+            ReployError::WithContext { source, context } => {
+                write!(f, "{}\nContext: {}", source, context)
+            }
         }
     }
 }
