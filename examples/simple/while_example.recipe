@@ -1,17 +1,6 @@
 Target local
 
 Task {
-    # Infinite loop with break condition
-    #Set counter 0
-    #While true {
-    #    Print "Counter: ${counter}"
-    #    Set counter {{${counter} + 1}} 
-    #    When {{${counter} == 5}} {
-    #        Print "Breaking loop"
-    #        End
-    #    }
-    #}
-
     # Conditional loop
     Set should_continue true
     While {{${should_continue} == true}} {
@@ -28,5 +17,16 @@ Task {
             Set inner {{${inner} + 1}}
         }
         Set outer {{${outer} + 1}}
+    }
+
+    # Infinite loop with break condition
+    Set counter 0
+    While true {
+        Print "Counter: ${counter}"
+        Set counter {{${counter} + 1}} 
+        When {{${counter} == 5}} {
+            Print "Breaking loop"
+            End
+        }
     }
 }
