@@ -12,7 +12,6 @@ mod util;
 
 const HOST_KEY: &str = "$HOST";
 
-const EQEQ: &str = "==";
 const STDOUT: &str = "stdout";
 const STDERR: &str = "stderr";
 const EXIT_CODE: &str = "exit_code";
@@ -35,6 +34,19 @@ pub enum Statement {
         start: Token,
         end: Token,
         step: Option<Token>,
+        body: Vec<Statement>,
+    },
+    ListLoop {
+        variable: Token,
+        list: Token,
+        body: Vec<Statement>,
+    },
+    While {
+        condition: Token,
+        body: Vec<Statement>,
+    },
+    When {
+        condition: Token,
         body: Vec<Statement>,
     },
 }

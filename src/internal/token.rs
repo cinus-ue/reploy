@@ -27,6 +27,16 @@ pub enum Type {
     TARGET,
     WAIT,
     FOR,
+    FORIN,
+    IN,
+    WHILE,
+    EXPRESSION, // For {{...}} template expressions
+    EQEQ,       // ==
+    NOTEQ,      // !=
+    GT,         // >
+    LT,         // <
+    GTEQ,       // >=
+    LTEQ,       // <=
     UNKNOWN,
 }
 
@@ -50,6 +60,15 @@ pub fn lookup_identifier(identifier: String) -> Type {
         "Target" => Type::TARGET,
         "Wait" => Type::WAIT,
         "For" => Type::FOR,
+        "Forin" => Type::FORIN,
+        "In" => Type::IN,
+        "While" => Type::WHILE,
+        "==" => Type::EQEQ,
+        "!=" => Type::NOTEQ,
+        ">" => Type::GT,
+        "<" => Type::LT,
+        ">=" => Type::GTEQ,
+        "<=" => Type::LTEQ,
         _ => Type::UNKNOWN,
     };
 }

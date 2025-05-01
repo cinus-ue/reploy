@@ -76,6 +76,26 @@ impl Parser {
                 Type::FOR => {
                     statements.push(self.parse_for_loop()?);
                 }
+                Type::FORIN => {
+                    statements.push(self.parse_forin_loop()?);
+                }
+                Type::WHILE => {
+                    statements.push(self.parse_while()?);
+                }
+                Type::SET => {
+                    let k = self.lexer.next_token();
+                    let v = self.lexer.next_token();
+                    if k.token_type == Type::EOF || v.token_type == Type::EOF {
+                        return Err(ReployError::InvalidRecipe(format!(
+                            "Line {}: Incomplete SET statement",
+                            token.line_num
+                        )));
+                    }
+                    statements.push(Statement::Simple {
+                        token,
+                        arguments: vec![k, v],
+                    });
+                }
                 Type::RUN | Type::PRINT | Type::CALL => {
                     let mut arguments: Vec<Token> = Vec::new();
                     let mut len = 1;
@@ -125,20 +145,25 @@ impl Parser {
                     statements.push(Statement::Simple { token, arguments });
                 }
                 Type::WHEN => {
-                    let mut arguments: Vec<Token> = Vec::new();
-                    let mut len = 4;
-                    while len > 0 {
-                        let arg = self.lexer.next_token();
-                        if arg.token_type == Type::EOF {
-                            return Err(ReployError::InvalidRecipe(format!(
-                                "Line {}: Incomplete statement at token: {}",
-                                token.line_num, token.literal
-                            )));
-                        }
-                        arguments.push(arg);
-                        len -= 1;
+                    let condition = self.lexer.next_token();
+                    if condition.token_type == Type::EOF {
+                        return Err(ReployError::InvalidRecipe(format!(
+                            "Line {}: Missing condition after WHEN",
+                            token.line_num
+                        )));
                     }
-                    statements.push(Statement::Simple { token, arguments });
+
+                    let lbrace = self.lexer.next_token();
+                    if lbrace.token_type != Type::LBRACE {
+                        return Err(ReployError::InvalidRecipe(format!(
+                            "Line {}: Expected '{{' after WHEN condition",
+                            lbrace.line_num
+                        )));
+                    }
+
+                    let body = self.parse_statement()?;
+
+                    statements.push(Statement::When { condition, body });
                 }
                 Type::LBRACE => {
                     continue;
@@ -206,5 +231,75 @@ impl Parser {
             step,
             body,
         })
+    }
+
+    fn parse_forin_loop(&mut self) -> Result<Statement, ReployError> {
+        // Read loop variable
+        let variable = self.lexer.next_token();
+        if variable.token_type == Type::EOF {
+            return Err(ReployError::InvalidRecipe(format!(
+                "Line {}: Missing loop variable after FORIN",
+                variable.line_num
+            )));
+        }
+
+        // Read IN keyword
+        let in_keyword = self.lexer.next_token();
+        if in_keyword.token_type != Type::IN {
+            return Err(ReployError::InvalidRecipe(format!(
+                "Line {}: Expected 'IN' after FORIN variable",
+                in_keyword.line_num
+            )));
+        }
+
+        // Read list expression
+        let list = self.lexer.next_token();
+        if list.token_type == Type::EOF {
+            return Err(ReployError::InvalidRecipe(format!(
+                "Line {}: Missing list expression in FORIN loop",
+                list.line_num
+            )));
+        }
+
+        // Parse loop body
+        let lbrace = self.lexer.next_token();
+        if lbrace.token_type != Type::LBRACE {
+            return Err(ReployError::InvalidRecipe(format!(
+                "Line {}: Expected '{{' after FORIN parameters",
+                lbrace.line_num
+            )));
+        }
+
+        let body = self.parse_statement()?;
+
+        Ok(Statement::ListLoop {
+            variable,
+            list,
+            body,
+        })
+    }
+
+    fn parse_while(&mut self) -> Result<Statement, ReployError> {
+        // Read condition
+        let condition = self.lexer.next_token();
+        if condition.token_type == Type::EOF {
+            return Err(ReployError::InvalidRecipe(format!(
+                "Line {}: Missing condition after WHILE",
+                condition.line_num
+            )));
+        }
+
+        // Parse loop body
+        let lbrace = self.lexer.next_token();
+        if lbrace.token_type != Type::LBRACE {
+            return Err(ReployError::InvalidRecipe(format!(
+                "Line {}: Expected '{{' after WHILE condition",
+                lbrace.line_num
+            )));
+        }
+
+        let body = self.parse_statement()?;
+
+        Ok(Statement::While { condition, body })
     }
 }

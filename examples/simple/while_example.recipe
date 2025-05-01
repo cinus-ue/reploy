@@ -1,0 +1,32 @@
+Target local
+
+Task {
+    # Infinite loop with break condition
+    Set counter 0
+    While true {
+        Print "Counter: $counter"
+        Set counter {{$counter + 1}} 
+        When {{$counter == 5}} {
+            End
+        }
+    }
+
+    # Conditional loop
+    Set should_continue true
+    While {{$should_continue}} {
+        Print "Conditional loop running"
+        Run "echo This will run once"
+        Set should_continue false
+    }
+
+    # Nested while loops
+    Set outer 0
+    While {{$outer < 3}} {
+        Set inner 0
+        While {{$inner < 2}} {
+            Print "Nested loop: outer=$outer, inner=$inner"
+            Set inner {{$inner + 1}}
+        }
+        Set outer {{$outer + 1}}
+    }
+}

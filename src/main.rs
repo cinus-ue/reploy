@@ -15,7 +15,7 @@ mod internal;
 
 fn main() {
     let cmd = Command::new("reploy")
-        .version("0.2.3")
+        .version("0.2.4")
         .arg_required_else_help(true)
         .arg(
             Arg::new("identity")
@@ -85,9 +85,9 @@ fn main() {
 
     match evaluator.run() {
         Ok(_) => println!(
-            "Deployment finished successfully. Duration: {:?}",
+            "Recipe execution completed. Duration: {:?}",
             Instant::now().duration_since(start)
         ),
-        Err(e) => eprintln!("Deployment failed: {}", e),
+        Err(e) => eprintln!("Recipe execution failed: {}", e),
     }
 }

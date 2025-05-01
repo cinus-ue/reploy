@@ -1,0 +1,15 @@
+# Test WHEN condition with template expression
+Target local
+Set counter 5
+
+Task {
+    When {{$counter == 5}} {
+        Print "Condition met"
+    }
+
+    When {{counter != 3}} {
+        Print "Counter is not 3"
+    }
+}
+
+

@@ -48,6 +48,33 @@ impl Evaluator {
                     }
                     self.resolve_loop(variable, start, end, step, body)?;
                 }
+                Statement::ListLoop {
+                    variable,
+                    list,
+                    body,
+                } => {
+                    if self.is_verbose {
+                        println!("Executing LIST LOOP statement");
+                    }
+                    self.resolve_list_loop(variable, list, body)?;
+                }
+                Statement::While { condition, body } => {
+                    if self.is_verbose {
+                        println!("Executing WHILE statement");
+                    }
+                    self.resolve_while(condition, body)?;
+                }
+                Statement::When { condition, body } => {
+                    if self.is_verbose {
+                        println!("Executing WHEN statement");
+                    }
+                    let condition_value = util::evaluate_expression(
+                        self.replace_variable(condition.literal.clone())?,
+                    )?;
+                    if condition_value == "true" {
+                        self.resolve_statement(body.clone())?;
+                    }
+                }
                 Statement::Simple { token, arguments } => {
                     let line_num = token.line_num;
                     if self.is_verbose {
@@ -63,11 +90,21 @@ impl Evaluator {
                         Type::LET => self.resolve_let(arguments),
                         Type::ASK => self.resolve_ask(arguments),
                         Type::PWD => self.resolve_password(arguments),
-                        Type::WHEN => self.resolve_when(arguments),
                         Type::SND => self.resolve_snd(arguments),
                         Type::RCV => self.resolve_rcv(arguments),
                         Type::CALL => self.resolve_call(arguments),
                         Type::WAIT => self.resolve_wait(arguments),
+                        Type::SET => {
+                            let k = arguments[0].literal.clone();
+                            let v = util::evaluate_expression(
+                                self.replace_variable(arguments[1].literal.clone())?,
+                            )?;
+                            if self.is_verbose {
+                                println!("Setting variable {} to {}", k, v);
+                            }
+                            self.recipe.variables.insert(k, v);
+                            Ok(())
+                        }
                         Type::END => {
                             self.is_end = true;
                             Ok(())
@@ -98,6 +135,12 @@ impl Evaluator {
 
     fn resolve_let(&mut self, arguments: Vec<Token>) -> Result<(), ReployError> {
         match arguments[2].literal.as_str() {
+            EXIT_CODE => {
+                self.recipe.variables.insert(
+                    arguments[0].literal.clone(),
+                    self.executor.stdio().exit_code.to_string(),
+                );
+            }
             STDOUT => {
                 self.recipe.variables.insert(
                     arguments[0].literal.clone(),
@@ -174,42 +217,6 @@ impl Evaluator {
         self.executor.recv(&source, &dest)
     }
 
-    fn resolve_when(&mut self, arguments: Vec<Token>) -> Result<(), ReployError> {
-        let v1 = &arguments[0];
-        let op = &arguments[1];
-        let v2 = &arguments[2];
-        let mut run_label;
-        match v1.literal.as_str() {
-            EXIT_CODE => run_label = self.executor.stdio().exit_code.to_string() == v2.literal,
-            STDOUT => run_label = self.executor.stdio().stdout.contains(v2.literal.as_str()),
-            STDERR => run_label = self.executor.stdio().stderr.contains(v2.literal.as_str()),
-            _ => {
-                let var_value =
-                    self.recipe
-                        .variables
-                        .get(v1.literal.as_str())
-                        .ok_or_else(|| {
-                            ReployError::Runtime(format!("Variable {} not found", v1.literal))
-                        })?;
-                run_label = var_value.contains(v2.literal.as_str())
-            }
-        }
-        if op.literal.as_str() != EQEQ {
-            run_label = !run_label;
-        }
-        if run_label {
-            let label_statements = self
-                .recipe
-                .labels
-                .get(arguments[3].literal.as_str())
-                .ok_or_else(|| {
-                    ReployError::Runtime(format!("Label {} not found", arguments[3].literal))
-                })?;
-            self.resolve_statement(label_statements.to_vec())?;
-        }
-        Ok(())
-    }
-
     fn resolve_call(&mut self, arguments: Vec<Token>) -> Result<(), ReployError> {
         let mut label = arguments[0].literal.clone();
         if label.starts_with("{{") && label.ends_with("}}") {
@@ -235,19 +242,53 @@ impl Evaluator {
     }
 
     fn replace_variable(&self, mut s: String) -> Result<String, ReployError> {
-        let re = Regex::new(r"\{\{(.*?)}}")
-            .map_err(|e| ReployError::Runtime(format!("Failed to compile regex: {}", e)))?;
+        if self.is_verbose {
+            println!("Replacing variables in: {}", s);
+        }
+        // First handle inline $variables in strings
+        let var_re = Regex::new(r"\$(\w+)").map_err(|e| {
+            ReployError::Runtime(format!("Failed to compile variable regex: {}", e))
+        })?;
 
-        for cap in re.captures_iter(&s.clone()) {
-            let var = cap
-                .get(0)
-                .ok_or_else(|| ReployError::Runtime("Invalid variable pattern".to_string()))?
-                .as_str();
-            let key = var.trim_start_matches("{{").trim_end_matches("}}");
-            if let Some(value) = self.recipe.variables.get(key) {
-                s = s.replace(var, value.as_str());
+        for cap in var_re.captures_iter(&s.clone()) {
+            if let Some(var_match) = cap.get(0) {
+                let var_name = &cap[1];
+                if let Some(var_value) = self.recipe.variables.get(var_name) {
+                    s = s.replace(var_match.as_str(), var_value);
+                }
             }
         }
+
+        // // Then handle expression variables in {{}}
+        // let expr_re = Regex::new(r"\{\{(\$?\w+.*?)}}")
+        //     .map_err(|e| ReployError::Runtime(format!("Failed to compile expression regex: {}", e)))?;
+
+        // for cap in expr_re.captures_iter(&s.clone()) {
+        //     if let Some(expr_match) = cap.get(0) {
+        //         let expr_content = &cap[1];
+        //         let mut processed_expr = String::new();
+
+        //         // Process each token in expression
+        //         for token in expr_content.split_whitespace() {
+        //             let processed_token = if token.starts_with('$') {
+        //                 // Handle $variable in expressions
+        //                 let var_name = &token[1..];
+        //                 self.recipe.variables.get(var_name).map_or(token, |v| v.as_str())
+        //             } else {
+        //                 // Non-variable tokens remain unchanged
+        //                 token
+        //             };
+
+        //             if !processed_expr.is_empty() {
+        //                 processed_expr.push(' ');
+        //             }
+        //             processed_expr.push_str(processed_token);
+        //         }
+
+        //         s = s.replace(expr_match.as_str(), &format!("{{{}}}", processed_expr));
+        //     }
+        // }
+
         Ok(s)
     }
 
@@ -342,6 +383,77 @@ impl Evaluator {
             .variables
             .insert(HOST_KEY.to_string(), target.clone());
         self.executor.connect(target)?;
+        Ok(())
+    }
+
+    fn resolve_list_loop(
+        &mut self,
+        variable: Token,
+        list: Token,
+        body: Vec<Statement>,
+    ) -> Result<(), ReployError> {
+        // Get list expression, handling variable substitution
+        let list_str = self.replace_variable(list.literal.clone())?;
+
+        // Split list into elements
+        let elements: Vec<&str> = list_str.split(',').map(|s| s.trim()).collect();
+
+        if self.is_verbose {
+            println!("List elements: {:?}", elements);
+        }
+
+        // Save original variable value if it exists
+        let original_value = self.recipe.variables.get(&variable.literal).cloned();
+
+        // Iterate through list elements
+        for element in elements {
+            if element.is_empty() {
+                continue;
+            }
+
+            // Set loop variable value
+            self.recipe
+                .variables
+                .insert(variable.literal.clone(), element.to_string());
+
+            // Execute loop body
+            self.resolve_statement(body.clone())?;
+        }
+
+        // Restore original variable value
+        if let Some(val) = original_value {
+            self.recipe.variables.insert(variable.literal.clone(), val);
+        } else {
+            self.recipe.variables.remove(&variable.literal);
+        }
+
+        Ok(())
+    }
+
+    fn resolve_while(&mut self, condition: Token, body: Vec<Statement>) -> Result<(), ReployError> {
+        // Handle "true" constant for infinite loop
+        if condition.literal == "true" {
+            while !self.is_end {
+                self.resolve_statement(body.clone())?;
+            }
+            return Ok(());
+        }
+
+        // Evaluate condition with variable substitution
+        loop {
+            let cond =
+                util::evaluate_expression(self.replace_variable(condition.literal.clone())?)?;
+            if cond.to_lowercase() != "true" {
+                break;
+            }
+
+            self.resolve_statement(body.clone())?;
+
+            if self.is_end {
+                break;
+            }
+        }
+
         Ok(())
     }
 }

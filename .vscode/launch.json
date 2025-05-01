@@ -7,7 +7,7 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'reploy'",
+            "name": "Build 'reploy'",
             "cargo": {
                 "args": [
                     "build",
@@ -19,27 +19,11 @@
                     "kind": "bin"
                 }
             },
-            "args": [],
+            "args": [
+                // "local",
+                // "D:\\code\\reploy\\examples\\simple\\while_example.recipe"
+            ],
             "cwd": "${workspaceFolder}"
         },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug unit tests in executable 'reploy'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--bin=reploy",
-                    "--package=reploy"
-                ],
-                "filter": {
-                    "name": "reploy",
-                    "kind": "bin"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
-        }
     ]
 }

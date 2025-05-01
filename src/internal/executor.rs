@@ -40,16 +40,34 @@ impl Executor for LocalExecutor {
     fn execute(&mut self, command: &str) -> Result<(), ReployError> {
         use std::process::Command;
 
-        let output = Command::new("sh")
-            .arg("-c")
-            .arg(command)
-            .output()
-            .map_err(|e| {
-                ReployError::CommandFailed(
-                    -1,
-                    format!("Failed to execute local command: {}, Error: {}", command, e),
-                )
-            })?;
+        let output = if cfg!(target_os = "windows") {
+            Command::new("cmd")
+                .args(&["/C", command])
+                .output()
+                .map_err(|e| {
+                    ReployError::CommandFailed(
+                        -1,
+                        format!(
+                            "Failed to execute command on Windows: {}, Error: {}",
+                            command, e
+                        ),
+                    )
+                })?
+        } else {
+            Command::new("sh")
+                .arg("-c")
+                .arg(command)
+                .output()
+                .map_err(|e| {
+                    ReployError::CommandFailed(
+                        -1,
+                        format!(
+                            "Failed to execute command on Unix: {}, Error: {}",
+                            command, e
+                        ),
+                    )
+                })?
+        };
 
         self.stdio = Stdio {
             exit_code: output.status.code().unwrap_or(-1),
@@ -61,12 +79,16 @@ impl Executor for LocalExecutor {
     }
 
     fn send(&self, source: &str, dest: &str) -> Result<(), ReployError> {
-        std::fs::copy(source, dest)?;
+        let source_path = Path::new(source);
+        let dest_path = Path::new(dest);
+        std::fs::copy(source_path, dest_path)?;
         Ok(())
     }
 
     fn recv(&self, source: &str, dest: &str) -> Result<(), ReployError> {
-        std::fs::copy(source, dest)?;
+        let source_path = Path::new(source);
+        let dest_path = Path::new(dest);
+        std::fs::copy(source_path, dest_path)?;
         Ok(())
     }
 
