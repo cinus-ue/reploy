@@ -6,7 +6,6 @@ const EOF_CHAR: char = '\0';
 //const CR: char = '\u{000D}';
 const LF: char = '\u{000A}';
 
-
 pub struct Lexer {
     initial_len: usize,
     read_len: usize,
@@ -36,20 +35,16 @@ impl Lexer {
             return self.next_token();
         }
         return match self.char {
-            EOF_CHAR => {
-                Token {
-                    literal: String::new(),
-                    line_num: self.line_num,
-                    token_type: Type::EOF,
-                }
-            }
-            '"' => {
-                Token {
-                    literal: self.read_string(),
-                    line_num: self.line_num,
-                    token_type: Type::STRING,
-                }
-            }
+            EOF_CHAR => Token {
+                literal: String::new(),
+                line_num: self.line_num,
+                token_type: Type::EOF,
+            },
+            '"' => Token {
+                literal: self.read_string(),
+                line_num: self.line_num,
+                token_type: Type::STRING,
+            },
             _ => {
                 let identifier = self.read_identifier();
                 Token {
@@ -140,7 +135,6 @@ impl Lexer {
         return self.nth_char(self.read_len + 1);
     }
 
-
     fn read_char(&mut self) {
         if self.read_len < self.initial_len {
             self.read_len += 1;
@@ -166,7 +160,6 @@ impl Lexer {
         token
     }
 }
-
 
 fn is_whitespace(c: char) -> bool {
     // This is Pattern_White_Space.
@@ -224,4 +217,3 @@ fn is_lf(c: char) -> bool {
 fn is_end(c: char) -> bool {
     return c == EOF_CHAR;
 }
-

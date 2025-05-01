@@ -1,50 +1,32 @@
 use std::io;
-use std::net::TcpStream;
-use std::path::PathBuf;
 
 use dialoguer::{theme::ColorfulTheme, Input, Password};
 use regex::Regex;
-use ssh2::Session;
-
-use internal::token::Type;
-use internal::*;
 
 use internal::error::ReployError;
+use internal::executor::Executor;
+use internal::token::Type;
+use internal::*;
 
 pub struct Evaluator {
     recipe: Recipe,
     is_end: bool,
     is_verbose: bool,
-    identity: PathBuf,
-    ssh_session: Session,
-    ssh_stdio: Stdio,
+    executor: Box<dyn Executor>,
 }
 
 impl Evaluator {
-    pub fn new(recipe: Recipe, verbose: bool) -> Evaluator {
+    pub fn new(recipe: Recipe, verbose: bool, executor: Box<dyn Executor>) -> Self {
         Evaluator {
             recipe,
             is_end: false,
             is_verbose: verbose,
-            identity: util::ssh_key(),
-            ssh_session: Session::new().unwrap(),
-            ssh_stdio: Stdio {
-                exit_code: 0,
-                stdout: String::new(),
-                stderr: String::new(),
-            },
+            executor,
         }
     }
 
-    pub fn set_identity(&mut self, identity: &str) {
-        self.identity = PathBuf::from(identity);
-    }
-
     pub fn run(&mut self) -> Result<(), ReployError> {
-        self.resolve_statement(self.recipe.task.to_vec())?;
-        self.ssh_session
-            .disconnect(None, "connection closing", None)?;
-        Ok(())
+        self.resolve_statement(self.recipe.task.to_vec())
     }
 
     fn resolve_statement(&mut self, statements: Vec<Statement>) -> Result<(), ReployError> {
@@ -52,9 +34,15 @@ impl Evaluator {
             if self.is_end {
                 break;
             }
-            
+
             match statement {
-                Statement::Loop { variable, start, end, step, body } => {
+                Statement::Loop {
+                    variable,
+                    start,
+                    end,
+                    step,
+                    body,
+                } => {
                     if self.is_verbose {
                         println!("Executing LOOP statement");
                     }
@@ -63,7 +51,10 @@ impl Evaluator {
                 Statement::Simple { token, arguments } => {
                     let line_num = token.line_num;
                     if self.is_verbose {
-                        println!("Line {}: executing statement: {:?}", line_num, token.token_type);
+                        println!(
+                            "Line {}: executing statement: {:?}",
+                            line_num, token.token_type
+                        );
                     }
                     let result = match token.token_type {
                         Type::TARGET => self.resolve_target(arguments),
@@ -82,7 +73,10 @@ impl Evaluator {
                             Ok(())
                         }
                         _ => {
-                            eprintln!("Line {}: unhandled statement type: {:?}", line_num, token.token_type);
+                            eprintln!(
+                                "Line {}: unhandled statement type: {:?}",
+                                line_num, token.token_type
+                            );
                             Ok(())
                         }
                     };
@@ -94,18 +88,11 @@ impl Evaluator {
     }
 
     fn resolve_run(&mut self, arguments: Vec<Token>) -> Result<(), ReployError> {
-        let mut channel = self.ssh_session.channel_session()?;
         let cmd = self.replace_variable(arguments[0].literal.clone())?;
         if self.is_verbose {
             println!("run command: {}", cmd);
         }
-        channel.exec(cmd.as_str()).map_err(|e| {
-            ReployError::CommandFailed(
-                -1,
-                format!("Failed to execute command: {},Error: {}", cmd, e),
-            )
-        })?;
-        self.ssh_stdio = util::consume_stdio(&mut channel);
+        self.executor.execute(&cmd)?;
         Ok(())
     }
 
@@ -114,13 +101,13 @@ impl Evaluator {
             STDOUT => {
                 self.recipe.variables.insert(
                     arguments[0].literal.clone(),
-                    self.ssh_stdio.stdout.clone(),
+                    self.executor.stdio().stdout.clone(),
                 );
             }
             STDERR => {
                 self.recipe.variables.insert(
                     arguments[0].literal.clone(),
-                    self.ssh_stdio.stderr.clone(),
+                    self.executor.stdio().stderr.clone(),
                 );
             }
             _ => {
@@ -152,7 +139,6 @@ impl Evaluator {
     fn resolve_password(&mut self, arguments: Vec<Token>) -> Result<(), ReployError> {
         let password = Password::with_theme(&ColorfulTheme::default())
             .with_prompt(arguments[0].literal.clone())
-            // .with_confirmation("Repeat password", "Error: the passwords don't match.")
             .interact()
             .map_err(|e| {
                 ReployError::Io(io::Error::new(
@@ -171,26 +157,10 @@ impl Evaluator {
         let dest = self.replace_variable(arguments[1].literal.clone())?;
 
         if self.is_verbose {
-            println!("[SFTP] Uploading: '{}' -> '{}'", source, dest);
+            println!("Sending: '{}' -> '{}'", source, dest);
         }
 
-        let sftp = self.ssh_session.sftp().map_err(|e| {
-            ReployError::Ssh(e).with_context(format!(
-                "SFTP session initialization failed for upload operation"
-            ))
-        })?;
-
-        util::upload_file(&source, &dest, &sftp).map_err(|e| match e {
-            ReployError::Io(io_err) => ReployError::Io(io_err).with_context(format!(
-                "File upload failed | Source: '{}' | Destination: '{}'",
-                source, dest
-            )),
-            ReployError::Ssh(ssh_err) => ReployError::Ssh(ssh_err).with_context(format!(
-                "SFTP upload failed | Source: '{}' | Destination: '{}'",
-                source, dest
-            )),
-            other => other,
-        })
+        self.executor.send(&source, &dest)
     }
 
     fn resolve_rcv(&self, arguments: Vec<Token>) -> Result<(), ReployError> {
@@ -198,26 +168,10 @@ impl Evaluator {
         let dest = self.replace_variable(arguments[1].literal.clone())?;
 
         if self.is_verbose {
-            println!("[SFTP] Downloading: '{}' -> '{}'", source, dest);
+            println!("Receiving: '{}' -> '{}'", source, dest);
         }
 
-        let sftp = self.ssh_session.sftp().map_err(|e| {
-            ReployError::Ssh(e).with_context(format!(
-                "SFTP session initialization failed for download operation"
-            ))
-        })?;
-
-        util::download_file(&source, &dest, &sftp).map_err(|e| match e {
-            ReployError::Io(io_err) => ReployError::Io(io_err).with_context(format!(
-                "File download failed | Source: '{}' | Destination: '{}'",
-                source, dest
-            )),
-            ReployError::Ssh(ssh_err) => ReployError::Ssh(ssh_err).with_context(format!(
-                "SFTP download failed | Source: '{}' | Destination: '{}'",
-                source, dest
-            )),
-            other => other,
-        })
+        self.executor.recv(&source, &dest)
     }
 
     fn resolve_when(&mut self, arguments: Vec<Token>) -> Result<(), ReployError> {
@@ -226,9 +180,9 @@ impl Evaluator {
         let v2 = &arguments[2];
         let mut run_label;
         match v1.literal.as_str() {
-            EXIT_CODE => run_label = self.ssh_stdio.exit_code.to_string() == v2.literal,
-            STDOUT => run_label = self.ssh_stdio.stdout.contains(v2.literal.as_str()),
-            STDERR => run_label = self.ssh_stdio.stderr.contains(v2.literal.as_str()),
+            EXIT_CODE => run_label = self.executor.stdio().exit_code.to_string() == v2.literal,
+            STDOUT => run_label = self.executor.stdio().stdout.contains(v2.literal.as_str()),
+            STDERR => run_label = self.executor.stdio().stderr.contains(v2.literal.as_str()),
             _ => {
                 let var_value =
                     self.recipe
@@ -244,15 +198,12 @@ impl Evaluator {
             run_label = !run_label;
         }
         if run_label {
-        let label_statements = self
-            .recipe
-            .labels
-            .get(arguments[3].literal.as_str())
+            let label_statements = self
+                .recipe
+                .labels
+                .get(arguments[3].literal.as_str())
                 .ok_or_else(|| {
-                    ReployError::Runtime(format!(
-                        "Label {} not found",
-                        arguments[3].literal
-                    ))
+                    ReployError::Runtime(format!("Label {} not found", arguments[3].literal))
                 })?;
             self.resolve_statement(label_statements.to_vec())?;
         }
@@ -308,41 +259,35 @@ impl Evaluator {
         step: Option<Token>,
         body: Vec<Statement>,
     ) -> Result<(), ReployError> {
-        // Parse start value
-        let start_val = start.literal.parse::<i32>().map_err(|_| 
-            ReployError::Runtime(format!("Invalid start value: {}", start.literal))
-        )?;
-        
-        // Parse end value
-        let end_val = end.literal.parse::<i32>().map_err(|_| 
-            ReployError::Runtime(format!("Invalid end value: {}", end.literal))
-        )?;
-        
-        // Parse step value (default to 1 if not provided)
+        let start_val = start
+            .literal
+            .parse::<i32>()
+            .map_err(|_| ReployError::Runtime(format!("Invalid start value: {}", start.literal)))?;
+
+        let end_val = end
+            .literal
+            .parse::<i32>()
+            .map_err(|_| ReployError::Runtime(format!("Invalid end value: {}", end.literal)))?;
+
         let step_val = match step {
-            Some(t) => t.literal.parse::<i32>().map_err(|_| 
-                ReployError::Runtime(format!("Invalid step value: {}", t.literal))
-            )?,
+            Some(t) => t
+                .literal
+                .parse::<i32>()
+                .map_err(|_| ReployError::Runtime(format!("Invalid step value: {}", t.literal)))?,
             None => 1,
         };
 
-        // Save original variable value if it exists
         let original_value = self.recipe.variables.get(&variable.literal).cloned();
 
-        // Execute loop
         let mut current = start_val;
         while (step_val > 0 && current <= end_val) || (step_val < 0 && current >= end_val) {
-            // Set loop variable
-            self.recipe.variables.insert(variable.literal.clone(), current.to_string());
-            
-            // Execute loop body
+            self.recipe
+                .variables
+                .insert(variable.literal.clone(), current.to_string());
             self.resolve_statement(body.clone())?;
-            
-            // Update loop variable
             current += step_val;
         }
 
-        // Restore original variable value if it existed
         if let Some(val) = original_value {
             self.recipe.variables.insert(variable.literal.clone(), val);
         } else {
@@ -356,19 +301,20 @@ impl Evaluator {
         let mode = self.replace_variable(arguments[0].literal.clone())?;
         let target = self.replace_variable(arguments[1].literal.clone())?;
         let timeout = arguments[2].literal.parse::<u64>().unwrap_or(30);
-        
+
         let start = std::time::Instant::now();
-        
+
         match mode.as_str() {
             "port_open" => {
                 while start.elapsed().as_secs() < timeout {
-                    if TcpStream::connect(format!("127.0.0.1:{}", target)).is_ok() {
+                    if std::net::TcpStream::connect(format!("127.0.0.1:{}", target)).is_ok() {
                         return Ok(());
                     }
                     std::thread::sleep(std::time::Duration::from_secs(1));
                 }
                 Err(ReployError::Runtime(format!(
-                    "Timeout waiting for port {} to open", target
+                    "Timeout waiting for port {} to open",
+                    target
                 )))
             }
             "file_exists" => {
@@ -379,67 +325,23 @@ impl Evaluator {
                     std::thread::sleep(std::time::Duration::from_secs(1));
                 }
                 Err(ReployError::Runtime(format!(
-                    "Timeout waiting for file {} to exist", target
+                    "Timeout waiting for file {} to exist",
+                    target
                 )))
             }
             _ => Err(ReployError::Runtime(format!(
-                "Invalid wait mode: {}, expected 'port_open' or 'file_exists'", mode
+                "Invalid wait mode: {}, expected 'port_open' or 'file_exists'",
+                mode
             ))),
         }
     }
 
     fn resolve_target(&mut self, arguments: Vec<Token>) -> Result<(), ReployError> {
-        
         let target = &arguments[0].literal;
-        let mut user = "root";
-        let mut port = "22";
-        let mut host;
-
-        if target.contains("@") {
-            let v: Vec<&str> = target.split("@").collect();
-            user = v[0];
-            host = v[1];
-        } else {
-            host = target.as_str();
-        }
-        if host.contains(":") {
-            let v: Vec<&str> = host.split(":").collect();
-            host = v[0];
-            port = v[1];
-        }
         self.recipe
             .variables
-            .insert(HOST_KEY.to_string(), host.to_string());
-        if self.is_verbose {
-            println!("user:{}, host:{}, port:{}", user, host, port);
-            println!("identity: {:?}", self.identity);
-        }
-
-        let tcp_stream = TcpStream::connect(format!("{}:{}", host, port)).map_err(|e| {
-            ReployError::ConnectionFailed.with_context(format!(
-                "Failed to connect to {}:{},Error: {}",
-                host, port, e
-            ))
-        })?;
-
-        self.ssh_session.set_tcp_stream(tcp_stream);
-        self.ssh_session.handshake()?;
-
-        if self.identity.exists() {
-            self.ssh_session
-                .userauth_pubkey_file(user, None, self.identity.as_path(), None)
-                .map_err(|_| ReployError::AuthFailed)?;
-        } else {
-            return Err(ReployError::Io(io::Error::new(
-                io::ErrorKind::NotFound,
-                format!("Identity file not found: {:?}", self.identity),
-            )));
-        }
-
-        if !self.ssh_session.authenticated() {
-            return Err(ReployError::AuthFailed);
-        }
-
+            .insert(HOST_KEY.to_string(), target.clone());
+        self.executor.connect(target)?;
         Ok(())
     }
 }

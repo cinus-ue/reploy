@@ -2,12 +2,13 @@ use std::collections::HashMap;
 
 use internal::token::Token;
 
-pub mod evaluator;
-pub mod parser;
-pub mod lexer;
 pub mod error;
-mod util;
+pub mod evaluator;
+pub mod executor;
+pub mod lexer;
+pub mod parser;
 mod token;
+mod util;
 
 const HOST_KEY: &str = "$HOST";
 
@@ -45,3 +46,12 @@ pub struct Stdio {
     pub stderr: String,
 }
 
+impl Default for Stdio {
+    fn default() -> Self {
+        Self {
+            exit_code: 0,
+            stdout: String::new(),
+            stderr: String::new(),
+        }
+    }
+}

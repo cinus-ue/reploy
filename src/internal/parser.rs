@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use internal::{Recipe, Statement};
 use internal::error::ReployError;
 use internal::lexer::Lexer;
 use internal::token::{Token, Type};
+use internal::{Recipe, Statement};
 
 pub struct Parser {
     lexer: Lexer,
@@ -26,9 +26,10 @@ impl Parser {
                 Type::TARGET => {
                     let next_token = self.lexer.next_token();
                     if next_token.token_type == Type::EOF {
-                    return Err(ReployError::InvalidRecipe(
-                        format!("Line {}: Missing target after TARGET", token.line_num)
-                    ));
+                        return Err(ReployError::InvalidRecipe(format!(
+                            "Line {}: Missing target after TARGET",
+                            token.line_num
+                        )));
                     }
                     let mut arguments: Vec<Token> = Vec::new();
                     arguments.push(next_token);
@@ -38,9 +39,10 @@ impl Parser {
                     let k = self.lexer.next_token();
                     let v = self.lexer.next_token();
                     if k.token_type == Type::EOF || v.token_type == Type::EOF {
-                    return Err(ReployError::InvalidRecipe(
-                        format!("Line {}: Incomplete SET statement", token.line_num)
-                    ));
+                        return Err(ReployError::InvalidRecipe(format!(
+                            "Line {}: Incomplete SET statement",
+                            token.line_num
+                        )));
                     }
                     recipe.variables.insert(k.literal, v.literal);
                 }
@@ -50,9 +52,10 @@ impl Parser {
                 Type::LABEL => {
                     let label = self.lexer.next_token();
                     if label.token_type == Type::EOF {
-                    return Err(ReployError::InvalidRecipe(
-                        format!("Line {}: Missing label name after LABEL", token.line_num)
-                    ));
+                        return Err(ReployError::InvalidRecipe(format!(
+                            "Line {}: Missing label name after LABEL",
+                            token.line_num
+                        )));
                     }
                     recipe.labels.insert(label.literal, self.parse_statement()?);
                 }
@@ -79,9 +82,10 @@ impl Parser {
                     while len > 0 {
                         let arg = self.lexer.next_token();
                         if arg.token_type == Type::EOF {
-                            return Err(ReployError::InvalidRecipe(
-                                format!("Line {}: Incomplete statement at token: {}", token.line_num, token.literal)
-                            ));
+                            return Err(ReployError::InvalidRecipe(format!(
+                                "Line {}: Incomplete statement at token: {}",
+                                token.line_num, token.literal
+                            )));
                         }
                         arguments.push(arg);
                         len -= 1;
@@ -94,9 +98,10 @@ impl Parser {
                     while len > 0 {
                         let arg = self.lexer.next_token();
                         if arg.token_type == Type::EOF {
-                            return Err(ReployError::InvalidRecipe(
-                                format!("Line {}: Incomplete statement at token: {}", token.line_num, token.literal)
-                            ));
+                            return Err(ReployError::InvalidRecipe(format!(
+                                "Line {}: Incomplete statement at token: {}",
+                                token.line_num, token.literal
+                            )));
                         }
                         arguments.push(arg);
                         len -= 1;
@@ -109,9 +114,10 @@ impl Parser {
                     while len > 0 {
                         let arg = self.lexer.next_token();
                         if arg.token_type == Type::EOF {
-                            return Err(ReployError::InvalidRecipe(
-                                format!("Line {}: Incomplete statement at token: {}", token.line_num, token.literal)
-                            ));
+                            return Err(ReployError::InvalidRecipe(format!(
+                                "Line {}: Incomplete statement at token: {}",
+                                token.line_num, token.literal
+                            )));
                         }
                         arguments.push(arg);
                         len -= 1;
@@ -124,9 +130,10 @@ impl Parser {
                     while len > 0 {
                         let arg = self.lexer.next_token();
                         if arg.token_type == Type::EOF {
-                            return Err(ReployError::InvalidRecipe(
-                                format!("Line {}: Incomplete statement at token: {}", token.line_num, token.literal)
-                            ));
+                            return Err(ReployError::InvalidRecipe(format!(
+                                "Line {}: Incomplete statement at token: {}",
+                                token.line_num, token.literal
+                            )));
                         }
                         arguments.push(arg);
                         len -= 1;
@@ -149,25 +156,28 @@ impl Parser {
         // Read loop variable
         let variable = self.lexer.next_token();
         if variable.token_type == Type::EOF {
-            return Err(ReployError::InvalidRecipe(
-                format!("Line {}: Missing loop variable after FOR", variable.line_num)
-            ));
+            return Err(ReployError::InvalidRecipe(format!(
+                "Line {}: Missing loop variable after FOR",
+                variable.line_num
+            )));
         }
 
         // Read start value
         let start = self.lexer.next_token();
         if start.token_type == Type::EOF {
-            return Err(ReployError::InvalidRecipe(
-                format!("Line {}: Missing start value in FOR loop", start.line_num)
-            ));
+            return Err(ReployError::InvalidRecipe(format!(
+                "Line {}: Missing start value in FOR loop",
+                start.line_num
+            )));
         }
 
         // Read end value
         let end = self.lexer.next_token();
         if end.token_type == Type::EOF {
-            return Err(ReployError::InvalidRecipe(
-                format!("Line {}: Missing end value in FOR loop", end.line_num)
-            ));
+            return Err(ReployError::InvalidRecipe(format!(
+                "Line {}: Missing end value in FOR loop",
+                end.line_num
+            )));
         }
 
         // Check for optional step
@@ -181,9 +191,10 @@ impl Parser {
         // Parse loop body
         let lbrace = self.lexer.next_token();
         if lbrace.token_type != Type::LBRACE {
-            return Err(ReployError::InvalidRecipe(
-                format!("Line {}: Expected '{{' after FOR loop parameters", lbrace.line_num)
-            ));
+            return Err(ReployError::InvalidRecipe(format!(
+                "Line {}: Expected '{{' after FOR loop parameters",
+                lbrace.line_num
+            )));
         }
 
         let body = self.parse_statement()?;
@@ -197,4 +208,3 @@ impl Parser {
         })
     }
 }
-
