@@ -34,7 +34,9 @@ impl Evaluator {
             if self.is_end {
                 break;
             }
-
+            if self.is_verbose {
+                println!("Executing statement：{:?}", statement);
+            }
             match statement {
                 Statement::Loop {
                     variable,
