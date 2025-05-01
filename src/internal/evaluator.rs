@@ -26,7 +26,8 @@ impl Evaluator {
     }
 
     pub fn run(&mut self) -> Result<(), ReployError> {
-        self.resolve_statement(self.recipe.task.to_vec())
+        self.resolve_statement(self.recipe.task.to_vec())?;
+        self.executor.disconnect()
     }
 
     fn resolve_statement(&mut self, statements: Vec<Statement>) -> Result<(), ReployError> {

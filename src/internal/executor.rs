@@ -13,6 +13,7 @@ const BUF_SIZE: usize = 1024 * 1024;
 
 pub trait Executor {
     fn connect(&mut self, target: &str) -> Result<(), ReployError>;
+    fn disconnect(&mut self) -> Result<(), ReployError>;
     fn execute(&mut self, command: &str) -> Result<(), ReployError>;
     fn send(&self, source: &str, dest: &str) -> Result<(), ReployError>;
     fn recv(&self, source: &str, dest: &str) -> Result<(), ReployError>;
@@ -34,6 +35,10 @@ impl LocalExecutor {
 
 impl Executor for LocalExecutor {
     fn connect(&mut self, _target: &str) -> Result<(), ReployError> {
+        Ok(())
+    }
+
+    fn disconnect(&mut self) -> Result<(), ReployError> {
         Ok(())
     }
 
@@ -160,6 +165,11 @@ impl Executor for SshExecutor {
             return Err(ReployError::AuthFailed);
         }
 
+        Ok(())
+    }
+
+    fn disconnect(&mut self) -> Result<(), ReployError> {
+        self.session.disconnect(None, "connection closing", None)?;
         Ok(())
     }
 
