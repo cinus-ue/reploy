@@ -219,7 +219,7 @@ impl Evaluator {
 
     fn resolve_call(&mut self, arguments: Vec<Token>) -> Result<(), ReployError> {
         let mut label = arguments[0].literal.clone();
-        if label.starts_with("{{") && label.ends_with("}}") {
+        if label.starts_with("$") {
             label = self.replace_variable(label)?
         }
         let label_statements = self
