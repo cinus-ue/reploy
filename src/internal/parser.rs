@@ -165,6 +165,12 @@ impl Parser {
 
                     statements.push(Statement::When { condition, body });
                 }
+                Type::END => {
+                    statements.push(Statement::Simple {
+                        token,
+                        arguments: Vec::new(),
+                    });
+                }
                 Type::LBRACE => {
                     continue;
                 }
