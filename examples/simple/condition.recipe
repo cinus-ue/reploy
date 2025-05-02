@@ -5,26 +5,64 @@ Set counter 5
 
 Task {
     When (${counter} == 5) {
-        Print "Condition met"
+        true -> {
+            Print "Condition met"
+        }
     }
 
     When (${counter} != 3) {
-        Print "Counter is not 3"
+        true -> {
+            Print "Counter is not 3"
+        }
+        false -> {
+            Print "Counter is 3"
+        }
     }
 
     Set counter "${counter}20"
     When (${counter} == 520) {
+        true -> {
           Print "Counter is ${counter}"
+        }
     }
 
     Set str1 "Hello"
     Set str2 "World"
 
     When ("${str1} ${str2}" == "Hello World") {
-        Print "Strings are equal"
+        true -> {
+            Print "Strings are equal"
+        }
     }
-    
 
+
+     When (${str1}) {
+        "Hello" -> {
+            Print "str1 is Hello"
+            When (${str2}) {
+                "World" -> {
+                    Print "str2 is World"
+                }
+                _ -> {
+                    Print "str2 is ${str2}"
+                }
+            }
+        }
+        _ -> {
+            Print "str1 is ${str1}"
+        }
+    }
+
+
+    Set str3 ""
+    When (${str3}) {
+        "" -> {
+            Print "str3 is empty"
+        }
+        _ -> {  
+            Print "str3 is not empty"
+        }
+    }
 }
 
 

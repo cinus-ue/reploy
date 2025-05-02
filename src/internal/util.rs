@@ -24,7 +24,7 @@ pub fn is_expression(expr: &str) -> bool {
         || expr.contains("<=")
 }
 
-pub fn evaluate_expression(expr: String) -> Result<String, ReployError> {
+pub fn evaluate_expression(expr: &str) -> Result<String, ReployError> {
     let expr = expr.trim_start_matches("(").trim_end_matches(")");
     // If not an expression, return as-is
     if !is_expression(expr) {

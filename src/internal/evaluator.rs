@@ -1,12 +1,12 @@
 use std::io;
 
-use dialoguer::{theme::ColorfulTheme, Input, Password};
+use dialoguer::{Input, Password, theme::ColorfulTheme};
 use regex::Regex;
 
 use super::error::ReployError;
 use super::executor::Executor;
 use super::token::{Token, Type};
-use super::{util, Recipe, Statement};
+use super::{Recipe, Statement, util};
 
 const HOST_KEY: &str = "$HOST";
 
@@ -73,16 +73,14 @@ impl Evaluator {
                     }
                     self.resolve_while(condition, body)?;
                 }
-                Statement::When { condition, body } => {
+                Statement::When {
+                    condition,
+                    branches,
+                } => {
                     if self.is_verbose {
                         println!("Executing WHEN statement");
                     }
-                    let condition_value = util::evaluate_expression(
-                        self.replace_variable(condition.literal.clone())?,
-                    )?;
-                    if condition_value == "true" {
-                        self.resolve_statement(body.clone())?;
-                    }
+                    self.resolve_when(condition, branches)?;
                 }
                 Statement::Simple { token, arguments } => {
                     let line_num = token.line_num;
@@ -106,7 +104,7 @@ impl Evaluator {
                         Type::SET => {
                             let k = arguments[0].literal.clone();
                             let v = util::evaluate_expression(
-                                self.replace_variable(arguments[1].literal.clone())?,
+                                &self.replace_variable(arguments[1].literal.clone())?,
                             )?;
                             if self.is_verbose {
                                 println!("Setting variable {} to {}", k, v);
@@ -409,6 +407,66 @@ impl Evaluator {
         Ok(())
     }
 
+    fn resolve_when(
+        &mut self,
+        condition: Token,
+        branches: Vec<(Token, Vec<Statement>)>,
+    ) -> Result<(), ReployError> {
+        // Evaluate condition expression
+        let condition_expr = self.replace_variable(condition.literal.clone())?;
+        let condition_value = util::evaluate_expression(&condition_expr)?;
+
+        if self.is_verbose {
+            println!(
+                "WHEN condition '{}' evaluated to: {}",
+                condition_expr, condition_value
+            );
+        }
+
+        for (pattern, body) in branches {
+            let pattern_value = pattern.literal.clone();
+
+            if self.is_verbose {
+                println!("Checking pattern: {}", pattern_value);
+            }
+
+            // Check for true/false branch
+            if pattern_value == "true" || pattern_value == "false" {
+                let condition_bool = condition_value.to_lowercase() == "true";
+                let pattern_bool = pattern_value == "true";
+
+                if condition_bool == pattern_bool {
+                    if self.is_verbose {
+                        println!("Matched boolean branch: {}", pattern_value);
+                    }
+                    return self.resolve_statement(body);
+                }
+            }
+            // Check for wildcard pattern
+            else if pattern_value == "_" {
+                if self.is_verbose {
+                    println!("Matched wildcard branch");
+                }
+                return self.resolve_statement(body);
+            }
+            // Check for string pattern match
+            else {
+                let pattern_evaluated = self.replace_variable(pattern_value)?;
+                if condition_value == pattern_evaluated {
+                    if self.is_verbose {
+                        println!("Matched string pattern: {}", pattern_evaluated);
+                    }
+                    return self.resolve_statement(body);
+                }
+            }
+        }
+
+        if self.is_verbose {
+            println!("No branch matched for condition: {}", condition_value);
+        }
+        Ok(())
+    }
+
     fn resolve_while(&mut self, condition: Token, body: Vec<Statement>) -> Result<(), ReployError> {
         // Handle "true" constant for infinite loop
         if condition.literal == "true" {
@@ -421,7 +479,7 @@ impl Evaluator {
         // Evaluate condition with variable substitution
         loop {
             let cond =
-                util::evaluate_expression(self.replace_variable(condition.literal.clone())?)?;
+                util::evaluate_expression(&self.replace_variable(condition.literal.clone())?)?;
             if cond.to_lowercase() != "true" {
                 break;
             }

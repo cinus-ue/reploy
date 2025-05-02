@@ -37,6 +37,7 @@ pub enum Type {
     LT,         // <
     GTEQ,       // >=
     LTEQ,       // <=
+    ARROW,      // -> for pattern matching
     UNKNOWN,
 }
 
@@ -69,6 +70,7 @@ pub fn lookup_identifier(identifier: String) -> Type {
         "<" => Type::LT,
         ">=" => Type::GTEQ,
         "<=" => Type::LTEQ,
+        "->" => Type::ARROW,
         _ => Type::UNKNOWN,
     };
 }

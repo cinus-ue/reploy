@@ -41,7 +41,7 @@ pub enum Statement {
     },
     When {
         condition: Token,
-        body: Vec<Statement>,
+        branches: Vec<(Token, Vec<Statement>)>,
     },
 }
 

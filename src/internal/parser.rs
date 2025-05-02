@@ -153,6 +153,7 @@ impl Parser {
                         )));
                     }
 
+                    // Parse condition block
                     let lbrace = self.lexer.next_token();
                     if lbrace.token_type != Type::LBRACE {
                         return Err(ReployError::InvalidRecipe(format!(
@@ -161,9 +162,72 @@ impl Parser {
                         )));
                     }
 
-                    let body = self.parse_statement()?;
+                    // Parse branches (true/false/pattern matches)
+                    let mut branches = Vec::new();
+                    loop {
+                        let branch_token = self.lexer.next_token();
+                        if branch_token.token_type == Type::RBRACE {
+                            break;
+                        }
 
-                    statements.push(Statement::When { condition, body });
+                        // Check for pattern match (->)
+                        if branch_token.token_type == Type::ARROW {
+                            let pattern = condition.clone();
+                            let lbrace = self.lexer.next_token();
+                            if lbrace.token_type != Type::LBRACE {
+                                return Err(ReployError::InvalidRecipe(format!(
+                                    "Line {}: Expected '{{' after pattern",
+                                    lbrace.line_num
+                                )));
+                            }
+                            let body = self.parse_statement()?;
+                            branches.push((pattern, body));
+                        }
+                        // Check for true/false branch
+                        else if branch_token.literal == "true" || branch_token.literal == "false"
+                        {
+                            let arrow = self.lexer.next_token();
+                            if arrow.token_type != Type::ARROW {
+                                return Err(ReployError::InvalidRecipe(format!(
+                                    "Line {}: Expected '->' after {}",
+                                    arrow.line_num, branch_token.literal
+                                )));
+                            }
+                            let lbrace = self.lexer.next_token();
+                            if lbrace.token_type != Type::LBRACE {
+                                return Err(ReployError::InvalidRecipe(format!(
+                                    "Line {}: Expected '{{' after ->",
+                                    lbrace.line_num
+                                )));
+                            }
+                            let body = self.parse_statement()?;
+                            branches.push((branch_token, body));
+                        }
+                        // Check for string match branch
+                        else {
+                            let arrow = self.lexer.next_token();
+                            if arrow.token_type != Type::ARROW {
+                                return Err(ReployError::InvalidRecipe(format!(
+                                    "Line {}: Expected '->' after pattern",
+                                    arrow.line_num
+                                )));
+                            }
+                            let lbrace = self.lexer.next_token();
+                            if lbrace.token_type != Type::LBRACE {
+                                return Err(ReployError::InvalidRecipe(format!(
+                                    "Line {}: Expected '{{' after ->",
+                                    lbrace.line_num
+                                )));
+                            }
+                            let body = self.parse_statement()?;
+                            branches.push((branch_token, body));
+                        }
+                    }
+
+                    statements.push(Statement::When {
+                        condition,
+                        branches,
+                    });
                 }
                 Type::END => {
                     statements.push(Statement::Simple {
