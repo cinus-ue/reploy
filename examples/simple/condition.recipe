@@ -10,6 +10,7 @@ Task {
         }
     }
 
+    Set counter (${counter} - 2)
     When (${counter} != 3) {
         true -> {
             Print "Counter is not 3"

@@ -21,7 +21,21 @@ pub fn ssh_key() -> PathBuf {
         .unwrap_or(PathBuf::new())
 }
 
-pub fn is_expression(expr: &str) -> bool {
+pub fn evaluate_expression(expr: &str) -> Result<String, ReployError> {
+    if expr.starts_with("(") && expr.ends_with(")") {
+        let cleaned_expr = &expr[1..expr.len() - 1];
+        if is_expression(cleaned_expr) {
+            return handle_expression(cleaned_expr);
+        } else {
+            return Ok(cleaned_expr.to_string());
+        }
+    } else {
+        // If the expression is not enclosed in parentheses, it is a string literal
+        return Ok(expr.to_string());
+    }
+}
+
+fn is_expression(expr: &str) -> bool {
     expr.contains('*')
         || expr.contains(" / ")
         || expr.contains(" + ")
@@ -36,13 +50,7 @@ pub fn is_expression(expr: &str) -> bool {
         || expr.starts_with("dir_exists")
 }
 
-pub fn evaluate_expression(expr: &str) -> Result<String, ReployError> {
-    let expr = expr.trim_start_matches("(").trim_end_matches(")");
-    // If not an expression, return as-is
-    if !is_expression(expr) {
-        return Ok(expr.to_string());
-    }
-
+fn handle_expression(expr: &str) -> Result<String, ReployError> {
     // Handle file_exists expressions
     if expr.starts_with("file_exists") {
         let path = expr.trim_start_matches("file_exists").trim();

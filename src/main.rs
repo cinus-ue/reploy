@@ -15,7 +15,7 @@ mod internal;
 
 fn main() {
     let cmd = Command::new("reploy")
-        .version("0.2.8")
+        .version("0.2.9")
         .arg_required_else_help(true)
         .arg(
             Arg::new("identity")
