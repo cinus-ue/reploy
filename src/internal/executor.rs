@@ -4,8 +4,8 @@ use std::io::{BufReader, BufWriter, Read};
 use std::net::TcpStream;
 use std::path::Path;
 
-use super::error::ReployError;
 use super::Stdio;
+use super::error::ReployError;
 
 use super::util;
 
@@ -188,6 +188,10 @@ impl Executor for SshExecutor {
             stdout: stdout.trim().to_string(),
             stderr: stderr.trim().to_string(),
         };
+        channel.send_eof()?;
+        channel.wait_eof()?;
+        channel.close()?;
+        channel.wait_close()?;
 
         Ok(())
     }

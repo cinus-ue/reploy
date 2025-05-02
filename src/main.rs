@@ -15,15 +15,8 @@ mod internal;
 
 fn main() {
     let cmd = Command::new("reploy")
-        .version("0.2.9")
+        .version("0.2.10")
         .arg_required_else_help(true)
-        .arg(
-            Arg::new("identity")
-                .short('i')
-                .long("identity")
-                .value_name("KEY FILE")
-                .help("The identity file to use for key-based authentication"),
-        )
         .arg(
             Arg::new("verbose")
                 .short('v')
@@ -32,8 +25,15 @@ fn main() {
                 .help("Enable verbose output"),
         )
         .subcommand(
-            Command::new("run")
+            Command::new("ssh")
                 .about("Run the specified recipe over SSH")
+                .arg(
+                    Arg::new("identity")
+                        .short('i')
+                        .long("identity")
+                        .value_name("KEY FILE")
+                        .help("The identity file to use for key-based authentication"),
+                )
                 .arg(
                     Arg::new("recipe")
                         .required(true)
@@ -41,7 +41,7 @@ fn main() {
                 ),
         )
         .subcommand(
-            Command::new("local")
+            Command::new("run")
                 .about("Run the specified recipe locally")
                 .arg(
                     Arg::new("recipe")
@@ -53,8 +53,8 @@ fn main() {
     let matches = cmd.get_matches();
 
     let (is_local, sub_matches) = match matches.subcommand() {
-        Some(("run", m)) => (false, m),
-        Some(("local", m)) => (true, m),
+        Some(("ssh", m)) => (false, m),
+        Some(("run", m)) => (true, m),
         _ => unreachable!(),
     };
 
@@ -75,8 +75,8 @@ fn main() {
         Box::new(LocalExecutor::new())
     } else {
         let mut executor = SshExecutor::new();
-        if matches.contains_id("identity") {
-            executor.set_identity(matches.get_one::<String>("identity").unwrap());
+        if sub_matches.contains_id("identity") {
+            executor.set_identity(sub_matches.get_one::<String>("identity").unwrap());
         }
         Box::new(executor)
     };
