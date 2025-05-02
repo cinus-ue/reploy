@@ -35,7 +35,7 @@ Task {
     Run "su - ${USER_NAME} -c \"nohup ${V2RAY_PATH}/v2ray -config \
         ${V2RAY_PATH}/config.json >/dev/null 2>&1 &\""
     Let EXIT_CODE = exit_code
-    When (${EXIT_CODE} != "0") {
+    When (${EXIT_CODE} != 0) {
         true -> {
             Call CMD_ERROR
         }
