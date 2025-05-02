@@ -7,36 +7,41 @@ Task {
     # Install nginx server
     #
     Run "apt update" Run "apt install -y nginx" Call CHECK_EXIT_CODE
-    Run "nginx -v 2>&1" Let NGINX_VERSION = stdout Print "{{NGINX_VERSION}}"
+    Run "nginx -v 2>&1" Let NGINX_VERSION = stdout Print "${NGINX_VERSION}"
 
     #
     # Upload nginx configuration file
     #
-    Snd "nginx/nginx.conf" "{{NGINX_CONF_FILE}}"
+    Snd "nginx/nginx.conf" "${NGINX_CONF_FILE}"
 
     #
     # Check nginx configuration syntax
     #
-    Run "nginx -t -c {{NGINX_CONF_FILE}} 2>&1" Call CHECK_EXIT_CODE Let CONF_TEST = stdout  Print "NGINX CONF TEST:{{CONF_TEST}}"
+    Run "nginx -t -c ${NGINX_CONF_FILE} 2>&1" Call CHECK_EXIT_CODE Let CONF_TEST = stdout  Print "NGINX CONF TEST:${CONF_TEST}"
 
     #
     # Reload nginx
     #
     Run "nginx -s reload" Call CHECK_EXIT_CODE
 
-    Run "service nginx status" Let NGINX_STATUS = stdout  Print "NGINX STATUS:{{NGINX_STATUS}}"
+    Run "service nginx status" Let NGINX_STATUS = stdout  Print "NGINX STATUS:${NGINX_STATUS}"
     Print "NGINX:SUCCESS"
 }
 
 
 Label CHECK_EXIT_CODE {
-    When exit_code != "0" CMD_ERROR
+    Let EXIT_CODE = exit_code
+    When (${EXIT_CODE} != "0") {
+        true -> {
+            Call CMD_ERROR
+        }
+    }
 }
 
 Label CMD_ERROR {
     Print "FAILED TO RUN COMMAND."
-    Let STDERR = stderr Print "STDERR:{{STDERR}}"
-    Let STDOUT = stdout Print "STDOUT:{{STDOUT}}"
+    Let STDERR = stderr Print "STDERR:${STDERR}"
+    Let STDOUT = stdout Print "STDOUT:${STDOUT}"
     End
 }
 
