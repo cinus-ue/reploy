@@ -39,7 +39,7 @@ Label PASSWORD {
 
 Label CHECK_EXIT_CODE {
     Let EXIT_CODE = exit_code
-    When {{${EXIT_CODE} != 0}} {
+    When (${EXIT_CODE} != 0) {
         Call CMD_ERROR
     }
 }

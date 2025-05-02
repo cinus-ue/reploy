@@ -46,23 +46,11 @@ impl Lexer {
                 line_num: self.line_num,
                 token_type: Type::STRING,
             },
-            '{' => {
-                if self.peek_char() == '{' {
-                    self.read_char(); // Skip second '{'
-                    Token {
-                        literal: self.read_template_expression(),
-                        line_num: self.line_num,
-                        token_type: Type::EXPRESSION,
-                    }
-                } else {
-                    let identifier = self.read_identifier();
-                    Token {
-                        literal: identifier.clone(),
-                        line_num: self.line_num,
-                        token_type: token::lookup_identifier(identifier),
-                    }
-                }
-            }
+            '(' => Token {
+                literal: self.read_expression(),
+                line_num: self.line_num,
+                token_type: Type::EXPRESSION,
+            },
             _ => {
                 let identifier = self.read_identifier();
                 Token {
@@ -72,28 +60,6 @@ impl Lexer {
                 }
             }
         };
-    }
-
-    fn read_template_expression(&mut self) -> String {
-        let mut chars: Vec<char> = vec!['{', '{'];
-
-        while !self.is_eof() {
-            self.read_char();
-            if self.char == '}' && self.peek_char() == '}' {
-                chars.push(self.char);
-                self.read_char();
-                chars.push(self.char);
-                break;
-            } else {
-                chars.push(self.char);
-            }
-        }
-        // Skip the last '}'
-        if !is_whitespace(self.char) {
-            self.read_char();
-        }
-
-        return chars.iter().collect::<String>();
     }
 
     fn is_eof(&self) -> bool {
@@ -136,6 +102,23 @@ impl Lexer {
                 if self.char == 't' {
                     self.char = '\t'
                 }
+            }
+            chars.push(self.char);
+        }
+        return chars.iter().collect::<String>();
+    }
+
+    fn read_expression(&mut self) -> String {
+        let mut chars: Vec<char> = vec!['('];
+        loop {
+            self.read_char();
+            if self.char == ')' {
+                self.read_char();
+                break;
+            }
+            // unterminated expression
+            if self.char == EOF_CHAR {
+                break;
             }
             chars.push(self.char);
         }

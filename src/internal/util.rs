@@ -25,7 +25,7 @@ pub fn is_expression(expr: &str) -> bool {
 }
 
 pub fn evaluate_expression(expr: String) -> Result<String, ReployError> {
-    let expr = expr.trim_start_matches("{{").trim_end_matches("}}");
+    let expr = expr.trim_start_matches("(").trim_end_matches(")");
     // If not an expression, return as-is
     if !is_expression(expr) {
         return Ok(expr.to_string());

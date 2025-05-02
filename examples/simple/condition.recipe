@@ -4,23 +4,23 @@ Target local
 Set counter 5
 
 Task {
-    When {{${counter} == 5}} {
+    When (${counter} == 5) {
         Print "Condition met"
     }
 
-    When {{${counter} != 3}} {
+    When (${counter} != 3) {
         Print "Counter is not 3"
     }
 
     Set counter "${counter}20"
-    When {{${counter} == 520}} {
+    When (${counter} == 520) {
           Print "Counter is ${counter}"
     }
 
     Set str1 "Hello"
     Set str2 "World"
 
-    When {{"${str1} ${str2}" == "Hello World" }} {
+    When ("${str1} ${str2}" == "Hello World") {
         Print "Strings are equal"
     }
     
