@@ -1,5 +1,15 @@
 use super::error::ReployError;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+/// Check if a file exists at the given path
+pub fn file_exists(path: &str) -> bool {
+    Path::new(path).exists() && Path::new(path).is_file()
+}
+
+/// Check if a directory exists at the given path
+pub fn dir_exists(path: &str) -> bool {
+    Path::new(path).exists() && Path::new(path).is_dir()
+}
 
 pub fn home_dir() -> Option<PathBuf> {
     dirs::home_dir()
@@ -13,15 +23,17 @@ pub fn ssh_key() -> PathBuf {
 
 pub fn is_expression(expr: &str) -> bool {
     expr.contains('*')
-        || expr.contains('/')
-        || expr.contains('+')
-        || expr.contains('-')
-        || expr.contains('<')
-        || expr.contains('>')
-        || expr.contains("==")
-        || expr.contains("!=")
-        || expr.contains(">=")
-        || expr.contains("<=")
+        || expr.contains(" / ")
+        || expr.contains(" + ")
+        || expr.contains(" - ")
+        || expr.contains(" < ")
+        || expr.contains(" > ")
+        || expr.contains(" == ")
+        || expr.contains(" != ")
+        || expr.contains(" >= ")
+        || expr.contains(" <= ")
+        || expr.starts_with("file_exists")
+        || expr.starts_with("dir_exists")
 }
 
 pub fn evaluate_expression(expr: &str) -> Result<String, ReployError> {
@@ -29,6 +41,18 @@ pub fn evaluate_expression(expr: &str) -> Result<String, ReployError> {
     // If not an expression, return as-is
     if !is_expression(expr) {
         return Ok(expr.to_string());
+    }
+
+    // Handle file_exists expressions
+    if expr.starts_with("file_exists") {
+        let path = expr.trim_start_matches("file_exists").trim();
+        return Ok(file_exists(path).to_string());
+    }
+
+    // Handle dir_exists expressions
+    if expr.starts_with("dir_exists") {
+        let path = expr.trim_start_matches("dir_exists").trim();
+        return Ok(dir_exists(path).to_string());
     }
 
     // Handle multiplication and division first (higher precedence)

@@ -113,6 +113,7 @@ impl Lexer {
         loop {
             self.read_char();
             if self.char == ')' {
+                chars.push(self.char);
                 self.read_char();
                 break;
             }
