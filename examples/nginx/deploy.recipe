@@ -33,6 +33,7 @@ Label CHECK_EXIT_CODE {
     Let EXIT_CODE = exit_code
     When (${EXIT_CODE} != 0) {
         true -> {
+            Print "Command failed with exit code: ${EXIT_CODE}"
             Call CMD_ERROR
         }
     }
