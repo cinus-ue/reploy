@@ -16,7 +16,7 @@ Label SYSTEM {
     Run "cat /proc/stat | awk '/cpu/{printf(\"%.2f%\\n\"), ($2+$4)*100/($2+$4+$5)}' |  awk '{print $0}' | head -1"
     Call CHECK_EXIT_CODE Let CPU_USAGE = stdout  Print "CPU Usage:${CPU_USAGE}"
 
-    Run "free | awk '/Mem/{printf(\"%.2f%\"), $3/$2*100}'"
+    Run "free | awk '/Mem/{printf(\"%.2f%%\"), $3/$2*100}'"
     Call CHECK_EXIT_CODE Let MEMORY_USAGE = stdout  Print "Memory Usage:${MEMORY_USAGE}"
 }
 
@@ -40,7 +40,10 @@ Label PASSWORD {
 Label CHECK_EXIT_CODE {
     Let EXIT_CODE = exit_code
     When (${EXIT_CODE} != 0) {
-        Call CMD_ERROR
+        true -> {
+            Print "Command failed with exit code: ${EXIT_CODE}"
+            Call CMD_ERROR
+        }
     }
 }
 
