@@ -15,7 +15,7 @@ mod internal;
 
 fn main() {
     let cmd = Command::new("reploy")
-        .version("0.2.10")
+        .version("0.2.11")
         .arg_required_else_help(true)
         .arg(
             Arg::new("verbose")
@@ -33,6 +33,13 @@ fn main() {
                         .long("identity")
                         .value_name("KEY FILE")
                         .help("The identity file to use for key-based authentication"),
+                )
+                .arg(
+                    Arg::new("password")
+                        .short('p')
+                        .long("password")
+                        .action(ArgAction::SetTrue)
+                        .help("Prompt for password authentication"),
                 )
                 .arg(
                     Arg::new("recipe")
@@ -77,6 +84,13 @@ fn main() {
         let mut executor = SshExecutor::new();
         if sub_matches.contains_id("identity") {
             executor.set_identity(sub_matches.get_one::<String>("identity").unwrap());
+        }
+        if sub_matches.get_flag("password") {
+            let password = dialoguer::Password::new()
+                .with_prompt("SSH password")
+                .interact()
+                .unwrap_or_default();
+            executor.set_password(&password);
         }
         Box::new(executor)
     };

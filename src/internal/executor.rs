@@ -106,6 +106,7 @@ pub struct SshExecutor {
     session: ssh2::Session,
     stdio: Stdio,
     identity: std::path::PathBuf,
+    password: Option<String>,
 }
 
 impl SshExecutor {
@@ -114,11 +115,16 @@ impl SshExecutor {
             session: ssh2::Session::new().unwrap(),
             stdio: Stdio::default(),
             identity: util::ssh_key(),
+            password: None,
         }
     }
 
     pub fn set_identity(&mut self, identity: &str) {
         self.identity = std::path::PathBuf::from(identity);
+    }
+
+    pub fn set_password(&mut self, password: &str) {
+        self.password = Some(password.to_string());
     }
 }
 
@@ -151,13 +157,15 @@ impl Executor for SshExecutor {
         self.session.set_tcp_stream(tcp_stream);
         self.session.handshake()?;
 
-        if self.identity.exists() {
+        if let Some(password) = &self.password {
+            self.session.userauth_password(user, password)?;
+        } else if self.identity.exists() {
             self.session
                 .userauth_pubkey_file(user, None, &self.identity, None)?;
         } else {
             return Err(ReployError::Io(io::Error::new(
                 io::ErrorKind::NotFound,
-                format!("Identity file not found: {:?}", self.identity),
+                format!("No authentication method available (no password or identity file)"),
             )));
         }
 
