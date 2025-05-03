@@ -8,7 +8,7 @@ use super::executor::Executor;
 use super::token::{Token, Type};
 use super::{Recipe, Statement, util};
 
-const HOST_KEY: &str = "$HOST";
+const TARGET_KEY: &str = "$TARGET_KEY";
 
 const STDOUT: &str = "stdout";
 const STDERR: &str = "stderr";
@@ -238,13 +238,13 @@ impl Evaluator {
     }
 
     fn resolve_print(&self, arguments: Vec<Token>) -> Result<(), ReployError> {
-        let host = self
+        let target = self
             .recipe
             .variables
-            .get(HOST_KEY)
-            .ok_or_else(|| ReployError::Runtime("HOST_KEY not found".to_string()))?;
+            .get(TARGET_KEY)
+            .ok_or_else(|| ReployError::Runtime("TARGET_KEY not found".to_string()))?;
         let message = self.replace_variable(arguments[0].literal.clone())?;
-        println!("{} > {}", host, message);
+        println!("{} > {}", target, message);
         Ok(())
     }
 
@@ -358,7 +358,7 @@ impl Evaluator {
         let target = &arguments[0].literal;
         self.recipe
             .variables
-            .insert(HOST_KEY.to_string(), target.clone());
+            .insert(TARGET_KEY.to_string(), target.clone());
         self.executor.connect(target)?;
         Ok(())
     }
