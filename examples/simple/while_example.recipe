@@ -25,8 +25,10 @@ Task {
         Print "Counter: ${counter}"
         Set counter (${counter} + 1) 
         When (${counter} == 5) {
-            Print "Breaking loop"
-            End
+            true -> {
+                Print "Breaking loop"
+                End
+            }
         }
     }
 }
