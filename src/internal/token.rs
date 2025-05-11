@@ -27,7 +27,7 @@ pub enum Type {
     TARGET,
     WAIT,
     FOR,
-    FORIN,
+    EACH,
     IN,
     WHILE,
     EXPRESSION, // For {{...}} template expressions
@@ -61,7 +61,7 @@ pub fn lookup_identifier(identifier: String) -> Type {
         "Target" => Type::TARGET,
         "Wait" => Type::WAIT,
         "For" => Type::FOR,
-        "Forin" => Type::FORIN,
+        "Each" => Type::EACH,
         "In" => Type::IN,
         "While" => Type::WHILE,
         "==" => Type::EQEQ,

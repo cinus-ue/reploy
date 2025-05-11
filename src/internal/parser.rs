@@ -76,8 +76,8 @@ impl Parser {
                 Type::FOR => {
                     statements.push(self.parse_for_loop()?);
                 }
-                Type::FORIN => {
-                    statements.push(self.parse_forin_loop()?);
+                Type::EACH => {
+                    statements.push(self.parse_list_loop()?);
                 }
                 Type::WHILE => {
                     statements.push(self.parse_while()?);
@@ -303,7 +303,7 @@ impl Parser {
         })
     }
 
-    fn parse_forin_loop(&mut self) -> Result<Statement, ReployError> {
+    fn parse_list_loop(&mut self) -> Result<Statement, ReployError> {
         // Read loop variable
         let variable = self.lexer.next_token();
         if variable.token_type == Type::EOF {
