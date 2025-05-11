@@ -308,7 +308,7 @@ impl Parser {
         let variable = self.lexer.next_token();
         if variable.token_type == Type::EOF {
             return Err(ReployError::InvalidRecipe(format!(
-                "Line {}: Missing loop variable after FORIN",
+                "Line {}: Missing loop variable after EACH",
                 variable.line_num
             )));
         }
@@ -317,7 +317,7 @@ impl Parser {
         let in_keyword = self.lexer.next_token();
         if in_keyword.token_type != Type::IN {
             return Err(ReployError::InvalidRecipe(format!(
-                "Line {}: Expected 'IN' after FORIN variable",
+                "Line {}: Expected 'IN' after EACH variable",
                 in_keyword.line_num
             )));
         }
@@ -326,7 +326,7 @@ impl Parser {
         let list = self.lexer.next_token();
         if list.token_type == Type::EOF {
             return Err(ReployError::InvalidRecipe(format!(
-                "Line {}: Missing list expression in FORIN loop",
+                "Line {}: Missing list expression in EACH loop",
                 list.line_num
             )));
         }
@@ -335,7 +335,7 @@ impl Parser {
         let lbrace = self.lexer.next_token();
         if lbrace.token_type != Type::LBRACE {
             return Err(ReployError::InvalidRecipe(format!(
-                "Line {}: Expected '{{' after FORIN parameters",
+                "Line {}: Expected '{{' after EACH parameters",
                 lbrace.line_num
             )));
         }
