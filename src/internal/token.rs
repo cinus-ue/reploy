@@ -30,7 +30,7 @@ pub enum Type {
     EACH,
     IN,
     WHILE,
-    EXPRESSION, // For {{...}} template expressions
+    EXPRESSION, // For (...) expressions
     EQEQ,       // ==
     NOTEQ,      // !=
     GT,         // >
