@@ -317,13 +317,14 @@ impl Evaluator {
     }
 
     fn resolve_sleep(&mut self, arguments: Vec<Token>) -> Result<(), ReployError> {
-        let seconds = arguments[0].literal.parse::<u64>()
-            .map_err(|_| ReployError::Runtime(format!("Invalid sleep duration: {}", arguments[0].literal)))?;
-        
+        let seconds = arguments[0].literal.parse::<u64>().map_err(|_| {
+            ReployError::Runtime(format!("Invalid sleep duration: {}", arguments[0].literal))
+        })?;
+
         if self.is_verbose {
             println!("Sleeping for {} seconds", seconds);
         }
-        
+
         std::thread::sleep(std::time::Duration::from_secs(seconds));
         Ok(())
     }
@@ -338,7 +339,7 @@ impl Evaluator {
         match mode.as_str() {
             "port_open" => {
                 while start.elapsed().as_secs() < timeout {
-                    if std::net::TcpStream::connect(format!("127.0.0.1:{}", target)).is_ok() {
+                    if std::net::TcpStream::connect(target.clone()).is_ok() {
                         return Ok(());
                     }
                     std::thread::sleep(std::time::Duration::from_secs(1));
