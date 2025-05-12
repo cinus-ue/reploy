@@ -96,7 +96,7 @@ impl Parser {
                         arguments: vec![k, v],
                     });
                 }
-                Type::RUN | Type::PRINT | Type::CALL => {
+                Type::RUN | Type::PRINT | Type::CALL | Type::SLEEP => {
                     let mut arguments: Vec<Token> = Vec::new();
                     let mut len = 1;
                     while len > 0 {

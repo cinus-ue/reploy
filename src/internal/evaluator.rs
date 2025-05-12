@@ -101,6 +101,7 @@ impl Evaluator {
                         Type::RCV => self.resolve_rcv(arguments),
                         Type::CALL => self.resolve_call(arguments),
                         Type::WAIT => self.resolve_wait(arguments),
+                        Type::SLEEP => self.resolve_sleep(arguments),
                         Type::SET => {
                             let k = arguments[0].literal.clone();
                             let v = util::evaluate_expression(
@@ -312,6 +313,18 @@ impl Evaluator {
             self.recipe.variables.remove(&variable.literal);
         }
 
+        Ok(())
+    }
+
+    fn resolve_sleep(&mut self, arguments: Vec<Token>) -> Result<(), ReployError> {
+        let seconds = arguments[0].literal.parse::<u64>()
+            .map_err(|_| ReployError::Runtime(format!("Invalid sleep duration: {}", arguments[0].literal)))?;
+        
+        if self.is_verbose {
+            println!("Sleeping for {} seconds", seconds);
+        }
+        
+        std::thread::sleep(std::time::Duration::from_secs(seconds));
         Ok(())
     }
 

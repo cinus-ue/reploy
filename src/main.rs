@@ -15,7 +15,7 @@ mod internal;
 
 fn main() {
     let cmd = Command::new("reploy")
-        .version("0.3.0")
+        .version("0.3.1")
         .arg_required_else_help(true)
         .arg(
             Arg::new("verbose")

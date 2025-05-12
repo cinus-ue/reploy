@@ -29,8 +29,11 @@ Label SERVICE {
 }
 
 Label WAIT {
-    Wait "port_open" "8080" "60"  # 等待8080端口开放，超时60秒
-    Wait "file_exists" "/path/file" "30"  # 等待文件存在，超时30秒
+    #Wait "port_open" "8080" "60"  # 等待8080端口开放，超时60秒
+    Print "Waiting for 10 seconds..."
+    Sleep "10"  # 等待10秒
+    Print "Waited for 10 seconds."
+    #Wait "file_exists" "/path/file" "30"  # 等待文件存在，超时30秒
 }
 
 Label PASSWORD {

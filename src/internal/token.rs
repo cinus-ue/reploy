@@ -26,8 +26,9 @@ pub enum Type {
     STRING,
     TARGET,
     WAIT,
+    SLEEP,
     FOR,
-    EACH,
+    EACH, 
     IN,
     WHILE,
     EXPRESSION, // For (...) expressions
@@ -60,6 +61,7 @@ pub fn lookup_identifier(identifier: String) -> Type {
         "Print" => Type::PRINT,
         "Target" => Type::TARGET,
         "Wait" => Type::WAIT,
+        "Sleep" => Type::SLEEP,
         "For" => Type::FOR,
         "Each" => Type::EACH,
         "In" => Type::IN,
